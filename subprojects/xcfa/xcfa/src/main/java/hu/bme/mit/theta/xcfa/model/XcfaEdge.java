@@ -19,6 +19,7 @@ package hu.bme.mit.theta.xcfa.model;
 import com.google.common.collect.ImmutableList;
 import hu.bme.mit.theta.common.Utils;
 import hu.bme.mit.theta.core.decl.VarDecl;
+import hu.bme.mit.theta.core.stmt.Stmt;
 import hu.bme.mit.theta.frontend.FrontendMetadata;
 import hu.bme.mit.theta.xcfa.model.utils.XcfaLabelVarReplacer;
 
@@ -65,6 +66,10 @@ public final class XcfaEdge {
 			FrontendMetadata.create(xcfaEdge, s, o);
 		});
 		return xcfaEdge;
+	}
+
+	public static XcfaEdge create(final XcfaLocation source, final XcfaLocation target, final List<Stmt> labels) {
+		return of(source, target, labels.stream().map(XcfaLabel.StmtXcfaLabel::of).collect(Collectors.toList()));
 	}
 
 	public static XcfaEdge of(final XcfaLocation source, final XcfaLocation target, final List<XcfaLabel> labels) {

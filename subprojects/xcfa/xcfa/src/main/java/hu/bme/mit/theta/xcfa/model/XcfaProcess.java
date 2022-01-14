@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -51,6 +52,26 @@ public final class XcfaProcess {
     private final XCFA parent;
     private final Tuple2<XcfaEdge, XcfaLabel.StartThreadXcfaLabel> threadStartStmt;
 
+    public XcfaProcess(final String name,
+                       final List<VarDecl<?>> params,
+                       final Map<VarDecl<?>, Optional<LitExpr<?>>> threadLocalVars,
+                       final List<Function<XcfaProcess, XcfaProcedure>> procedures,
+                       final XCFA parent) {
+        this.name = name;
+        this.params = ImmutableList.copyOf(params);
+        this.threadLocalVars = ImmutableMap.copyOf(threadLocalVars);
+        final List<XcfaProcedure> procedureList = new ArrayList<>();
+        XcfaProcedure mainProcedure = null;
+        for (int i = 0; i < procedures.size(); i++) {
+            final XcfaProcedure procedure = procedures.get(i).apply(this);
+            procedureList.add(procedure);
+            if(i == 0) mainProcedure = procedure;
+        }
+        this.procedures = ImmutableList.copyOf(procedureList);
+        this.mainProcedure = mainProcedure;
+        this.parent = parent;
+        threadStartStmt = null;
+    }
 
     private XcfaProcess(final Builder builder, XCFA parent) {
         params = ImmutableList.copyOf(builder.params);

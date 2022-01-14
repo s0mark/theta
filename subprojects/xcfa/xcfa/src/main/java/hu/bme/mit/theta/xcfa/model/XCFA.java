@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -48,6 +49,26 @@ public final class XCFA {
 	private final XcfaProcess mainProcess;
 	private final String name;
 	private final boolean dynamic;
+
+	public XCFA(final Map<VarDecl<? extends Type>, Optional<LitExpr<?>>> globalVars,
+				final List<Function<XCFA, XcfaProcess>> processes,
+				final String name,
+				final boolean dynamic) {
+
+		this.globalVars = ImmutableMap.copyOf(globalVars);
+		final List<XcfaProcess> processList = new ArrayList<>();
+		XcfaProcess mainProcess = null;
+		for (int i = 0; i < processes.size(); i++) {
+			final XcfaProcess process = processes.get(i).apply(this);
+			processList.add(process);
+			if(i == 0) mainProcess = process;
+		}
+		this.mainProcess = mainProcess;
+		this.processes = ImmutableList.copyOf(processList);
+		this.name = name;
+		this.dynamic = dynamic;
+
+	}
 
 	private XCFA(Builder builder) {
 		globalVars = ImmutableMap.copyOf(builder.globalVars);

@@ -49,6 +49,28 @@ public final class XcfaProcedure {
     private final ImmutableList<XcfaEdge> edges;
     private final XcfaProcess parent;
 
+    public XcfaProcedure( final String name,
+                   final Map<VarDecl<?>, Direction> params,
+                   final Map<VarDecl<?>, Optional<LitExpr<?>>> localVars,
+                   final List<XcfaLocation> locs,
+                   final Type retType,
+                   final XcfaLocation initLoc,
+                   final XcfaLocation errorLoc,
+                   final XcfaLocation finalLoc,
+                   final List<XcfaEdge> edges,
+                   final XcfaProcess parent) {
+        this.name = name;
+        this.params = ImmutableMap.copyOf(params);
+        this.localVars = ImmutableMap.copyOf(localVars);
+        this.locs = ImmutableList.copyOf(locs);
+        this.retType = retType;
+        this.initLoc = initLoc;
+        this.errorLoc = errorLoc;
+        this.finalLoc = finalLoc;
+        this.edges = ImmutableList.copyOf(edges);
+        this.parent = parent;
+    }
+
     private XcfaProcedure(final Builder builder, final XcfaProcess parent) {
         params = ImmutableMap.copyOf(builder.params);
         localVars = ImmutableMap.copyOf(builder.localVars);

@@ -71,6 +71,7 @@ import hu.bme.mit.theta.xcfa.model.XcfaProcedure;
 import hu.bme.mit.theta.xcfa.model.XcfaProcess;
 import hu.bme.mit.theta.xcfa.model.utils.FrontendXcfaBuilder;
 import hu.bme.mit.theta.xcfa.passes.XcfaPassManager;
+import hu.bme.mit.theta.xcfa.ir.ArithmeticType;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -90,6 +91,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
 import static hu.bme.mit.theta.core.type.booltype.BoolExprs.True;
+import static hu.bme.mit.theta.xcfa.XcfaUtils.fromFile;
 
 public class XcfaCli {
 	private static final String JAR_NAME = "theta-xcfa-cli.jar";
@@ -101,6 +103,9 @@ public class XcfaCli {
 
 	@Parameter(names = "--input", description = "Path of the input C program", required = false)
 	File input;
+
+	@Parameter(names = "--use-llvm", description = "Use the legacy LLVM-based parser")
+	boolean llvm;
 
 	@Parameter(names = "--model", description = "Path of the input model (currently only CFAs are supported)", required = false)
 	File model;
@@ -277,6 +282,14 @@ public class XcfaCli {
 
 		XCFA.Builder xcfaBuilder = null;
 		XCFA xcfa = null;
+		if(llvm) {
+			try {
+				xcfa = fromFile(input, ArithmeticType.efficient);
+			} catch(Exception e) {
+				e.printStackTrace();
+				System.exit(-80);
+			}
+		}
 		if(input != null) {
 			try {
 				final CharStream input = CharStreams.fromStream(new FileInputStream(this.input));

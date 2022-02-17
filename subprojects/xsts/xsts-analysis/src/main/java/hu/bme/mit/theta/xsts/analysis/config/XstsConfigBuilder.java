@@ -362,17 +362,12 @@ public class XstsConfigBuilder {
                         Prod2ExplPredPreStrengtheningOperator.create(),
                         Prod2ExplPredStrengtheningOperator.create(abstractionSolver));
             } else {
-//				final Prod2ExplPredAbstractors.Prod2ExplPredAbstractor prodAbstractor = Prod2ExplPredAbstractors.booleanAbstractor(abstractionSolver);
-//				prod2Analysis = Prod2ExplPredAnalysis.create(
-//					ExplAnalysis.create(abstractionSolver, xsts.getInitFormula()),
-//					PredAnalysis.create(abstractionSolver, PredAbstractors.booleanAbstractor(abstractionSolver), xsts.getInitFormula()),
-//					Prod2ExplPredStrengtheningOperator.create(abstractionSolver),
-//					prodAbstractor);
-                prod2Analysis = MixedAnalysis.create(
-                        abstractionSolver,
-                        ExplAnalysis.create(abstractionSolver, xsts.getInitFormula()),
-                        PredAnalysis.create(abstractionSolver, PredAbstractors.booleanAbstractor(abstractionSolver), xsts.getInitFormula()),
-                        Prod2ExplPredStrengtheningOperator.create(abstractionSolver));
+				final Prod2ExplPredAbstractors.Prod2ExplPredAbstractor prodAbstractor = Prod2ExplPredAbstractors.booleanAbstractor(abstractionSolver);
+				prod2Analysis = Prod2ExplPredAnalysis.create(
+					ExplAnalysis.create(abstractionSolver, xsts.getInitFormula()),
+					PredAnalysis.create(abstractionSolver, PredAbstractors.booleanAbstractor(abstractionSolver), xsts.getInitFormula()),
+					Prod2ExplPredStrengtheningOperator.create(abstractionSolver),
+					prodAbstractor);
             }
             final Analysis<XstsState<Prod2State<ExplState, PredState>>, XstsAction, Prod2Prec<ExplPrec, PredPrec>> analysis = XstsAnalysis.create(prod2Analysis);
 
@@ -387,8 +382,7 @@ public class XstsConfigBuilder {
             Refiner<XstsState<Prod2State<ExplState, PredState>>, XstsAction, Prod2Prec<ExplPrec, PredPrec>> refiner = null;
 
             final Set<VarDecl<?>> ctrlVars = xsts.getCtrlVars();
-//            final RefutationToPrec<Prod2Prec<ExplPrec, PredPrec>, ItpRefutation> precRefiner = AutomaticItpRefToProd2ExplPredPrec.create(autoExpl.builder.create(xsts), predSplit.splitter);
-            final RefutationToPrec<Prod2Prec<ExplPrec, PredPrec>, ItpRefutation> precRefiner = ItpRefToMixedPrec.create(new ItpRefToExplPrec(),new ItpRefToPredPrec(predSplit.splitter));
+            final RefutationToPrec<Prod2Prec<ExplPrec, PredPrec>, ItpRefutation> precRefiner = AutomaticItpRefToProd2ExplPredPrec.create(autoExpl.builder.create(xsts), predSplit.splitter);
             switch (refinement) {
                 case FW_BIN_ITP:
                     refiner = SingleExprTraceRefiner.create(ExprTraceFwBinItpChecker.create(xsts.getInitFormula(), negProp, solverFactory.createItpSolver()),

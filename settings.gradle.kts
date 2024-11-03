@@ -38,6 +38,7 @@ include(
     "sts/sts-cli",
 
     "xcfa/xcfa",
+    "xcfa/arg2acsl",
     "xcfa/cat",
     "xcfa/c2xcfa",
     "xcfa/litmus2xcfa",

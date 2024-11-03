@@ -144,7 +144,8 @@ data class XcfaEdge @JvmOverloads constructor(
 data class XcfaGlobalVar @JvmOverloads constructor(
     val wrappedVar: VarDecl<*>,
     val initValue: LitExpr<*>,
-    val threadLocal: Boolean = false
+    val threadLocal: Boolean = false,
+    val metadata: MetaData = EmptyMetaData,
 )
 
 enum class ParamDirection {

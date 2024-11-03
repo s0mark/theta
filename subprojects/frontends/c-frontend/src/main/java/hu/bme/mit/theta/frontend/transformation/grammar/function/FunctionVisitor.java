@@ -238,6 +238,9 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
             }
         }
         recordMetadata(ctx, decls);
+        for (Tuple2<CDeclaration, VarDecl<?>> tuple2 : decls.getcDeclarations()) {
+            tuple2.get1().recordMetadata(decls);
+        }
         return decls;
     }
 

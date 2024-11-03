@@ -37,6 +37,8 @@ enum class ExitCodes(val code: Int) {
 
     VERIFICATION_STUCK(220),
     SOLVER_ERROR(221),
+
+    ACSL_CONVERSION_ERROR(222),
 }
 
 data class ErrorCodeException(val code: Int) : Exception()
@@ -86,6 +88,9 @@ fun <T> exitOnError(stacktrace: Boolean, throwDontExit: Boolean, body: () -> T):
     } catch (e: UnknownSolverStatusException) {
         e.printCauseAndTrace(stacktrace)
         exitProcess(throwDontExit, e, ExitCodes.SOLVER_ERROR.code);
+    } catch (e: NotImplementedError) {
+        e.printCauseAndTrace(stacktrace)
+        exitProcess(throwDontExit, e, ExitCodes.ACSL_CONVERSION_ERROR.code)
     } catch (e: RuntimeException) {
         e.printCauseAndTrace(stacktrace)
         if (e.message?.contains("Solver problem") == true || e.message?.contains("Z3") == true) {

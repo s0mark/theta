@@ -61,20 +61,30 @@ fun XcfaLabel.getFlatLabels(): List<XcfaLabel> = when (this) {
     else -> listOf(this)
 }
 
+fun XCFA.getInvokeLabels(): List<InvokeLabel> {
+    fun XcfaLabel.getInvokeLabels(): List<InvokeLabel> = when (this) {
+        is InvokeLabel -> listOf(this)
+        is SequenceLabel -> this.labels.flatMap(XcfaLabel::getInvokeLabels)
+        is NondetLabel -> this.labels.flatMap(XcfaLabel::getInvokeLabels)
+        else -> emptyList()
+    }
+    return this.procedures.flatMap { proc -> proc.edges.flatMap { it.label.getInvokeLabels() } }
+}
+
 fun XCFA.collectVars(): Iterable<VarDecl<*>> = vars.map { it.wrappedVar } union procedures.map { it.vars }.flatten()
 
-fun XCFA.collectAssumes(): Iterable<Expr<BoolType>> = procedures.map { procedure ->
-    procedure.edges.map { it.label.collectAssumes() }.flatten()
+fun XCFA.collectAssumes(collectIf: (AssumeStmt) -> Boolean = { true }): Iterable<Expr<BoolType>> = procedures.map { procedure ->
+    procedure.edges.map { it.label.collectAssumes(collectIf) }.flatten()
 }.flatten()
 
-fun XcfaLabel.collectAssumes(): Iterable<Expr<BoolType>> = when (this) {
+fun XcfaLabel.collectAssumes(collectIf: (AssumeStmt) -> Boolean = { true }): Iterable<Expr<BoolType>> = when (this) {
     is StmtLabel -> when (stmt) {
-        is AssumeStmt -> setOf(stmt.cond)
+        is AssumeStmt -> if (collectIf(stmt)) setOf(stmt.cond) else setOf()
         else -> setOf()
     }
 
-    is NondetLabel -> labels.map { it.collectAssumes() }.flatten()
-    is SequenceLabel -> labels.map { it.collectAssumes() }.flatten()
+    is NondetLabel -> labels.map { it.collectAssumes(collectIf) }.flatten()
+    is SequenceLabel -> labels.map { it.collectAssumes(collectIf) }.flatten()
     else -> setOf()
 }
 

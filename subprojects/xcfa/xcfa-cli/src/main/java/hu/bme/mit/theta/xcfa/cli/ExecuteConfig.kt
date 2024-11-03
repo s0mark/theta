@@ -62,8 +62,10 @@ import hu.bme.mit.theta.xcfa.passes.LbePass
 import hu.bme.mit.theta.xcfa.passes.LoopUnrollPass
 import hu.bme.mit.theta.xcfa.passes.StaticCoiPass
 import hu.bme.mit.theta.xcfa.toC
+import hu.bme.mit.theta.arg2acsl.*
 import hu.bme.mit.theta.xcfa2chc.toSMT2CHC
 import java.io.File
+import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -359,6 +361,19 @@ private fun postVerificationLogging(
             }
         } catch (e: Throwable) {
             logger.write(Logger.Level.INFO, "Could not output files: ${e.stackTraceToString()}\n")
+        }
+    }
+    if (safetyResult.isSafe) {
+        safetyResult.witness.let { witness ->
+            if (witness is ARG<out State, out Action>) {
+                val resultFolder = config.outputConfig.resultFolder
+                resultFolder.mkdirs()
+                val input = config.inputConfig.input ?: throw FileNotFoundException("Input file doesn't exist.")
+                val acslFile = File(resultFolder, "${input.nameWithoutExtension}_acsl.c")
+                exitOnError(config.debugConfig.stacktrace, config.debugConfig.debug) {
+                    writeAcsl(witness, input, acslFile)
+                }
+            }
         }
     }
 }

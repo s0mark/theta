@@ -40,6 +40,7 @@ import hu.bme.mit.theta.core.utils.ExprUtils
 import hu.bme.mit.theta.core.utils.TypeUtils.cast
 import hu.bme.mit.theta.frontend.ParseContext
 import hu.bme.mit.theta.frontend.transformation.grammar.expression.UnsupportedInitializer
+import hu.bme.mit.theta.frontend.transformation.model.declaration.CDeclaration
 import hu.bme.mit.theta.frontend.transformation.model.statements.*
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CVoid
@@ -85,6 +86,16 @@ class FrontendXcfaBuilder(val parseContext: ParseContext, val checkOverflow: Boo
         sourceText = source.sourceText
     )
 
+    private fun getMetadata(source: CDeclaration): CMetaData = CMetaData(
+        lineNumberStart = source.lineNumberStart,
+        lineNumberStop = source.lineNumberStop,
+        colNumberStart = source.colNumberStart,
+        colNumberStop = source.colNumberStop,
+        offsetStart = source.offsetStart,
+        offsetEnd = source.offsetEnd,
+        sourceText = source.sourceText
+    )
+
     fun buildXcfa(cProgram: CProgram): XcfaBuilder {
         val builder = XcfaBuilder(cProgram.id ?: "")
         val initStmtList: MutableList<XcfaLabel> = ArrayList()
@@ -96,7 +107,8 @@ class FrontendXcfaBuilder(val parseContext: ParseContext, val checkOverflow: Boo
             if (type is CStruct) {
                 error("Not handling init expression of struct array ${globalDeclaration.get1()}")
             }
-            builder.addVar(XcfaGlobalVar(globalDeclaration.get2(), type.nullValue))
+            val globalVarMetadata = getMetadata(globalDeclaration.get1())
+            builder.addVar(XcfaGlobalVar(globalDeclaration.get2(), type.nullValue, metadata = globalVarMetadata))
             if (type is CArray) {
                 initStmtList.add(StmtLabel(
                     Stmts.Assign(cast(globalDeclaration.get2(), globalDeclaration.get2().type),

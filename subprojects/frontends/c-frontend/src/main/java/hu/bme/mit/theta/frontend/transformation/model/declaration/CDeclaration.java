@@ -17,13 +17,18 @@
 package hu.bme.mit.theta.frontend.transformation.model.declaration;
 
 import hu.bme.mit.theta.core.decl.VarDecl;
+import hu.bme.mit.theta.frontend.transformation.model.statements.CDecls;
 import hu.bme.mit.theta.frontend.transformation.model.statements.CStatement;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CArray;
 import hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleType;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static hu.bme.mit.theta.grammar.UtilsKt.textWithWS;
 
 public class CDeclaration {
 
@@ -35,6 +40,14 @@ public class CDeclaration {
     private final List<CStatement> arrayDimensions = new ArrayList<>();
     private final List<CDeclaration> functionParams = new ArrayList<>();
     private CStatement initExpr;
+
+    private int lineNumberStart = -1;
+    private int colNumberStart = -1;
+    private int lineNumberStop = -1;
+    private int colNumberStop = -1;
+    private int offsetStart = -1;
+    private int offsetEnd = -1;
+    private String sourceText = "";
 
     public CDeclaration(CSimpleType cSimpleType) {
         this.name = null;
@@ -146,5 +159,43 @@ public class CDeclaration {
 
     public void addVarDecl(VarDecl<?> varDecl) {
         this.varDecls.add(varDecl);
+    }
+
+    public int getLineNumberStart() {
+        return lineNumberStart;
+    }
+
+    public int getColNumberStart() {
+        return colNumberStart;
+    }
+
+    public int getLineNumberStop() {
+        return lineNumberStop;
+    }
+
+    public int getColNumberStop() {
+        return colNumberStop;
+    }
+
+    public int getOffsetStart() {
+        return offsetStart;
+    }
+
+    public int getOffsetEnd() {
+        return offsetEnd;
+    }
+
+    public String getSourceText() {
+        return sourceText;
+    }
+
+    public void recordMetadata(CDecls cDecls) {
+        this.lineNumberStart = cDecls.getLineNumberStart();
+        this.lineNumberStop = cDecls.getLineNumberStop();
+        this.colNumberStart = cDecls.getColNumberStart();
+        this.colNumberStop = cDecls.getColNumberStop();
+        this.offsetStart = cDecls.getOffsetStart();
+        this.offsetEnd = cDecls.getOffsetEnd();
+        this.sourceText = cDecls.getSourceText();
     }
 }

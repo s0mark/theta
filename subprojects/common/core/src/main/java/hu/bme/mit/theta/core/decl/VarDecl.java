@@ -37,7 +37,7 @@ public class VarDecl<DeclType extends Type> extends Decl<DeclType> {
 
     private final Map<Integer, IndexedConstDecl<DeclType>> indexToConst;
 
-    VarDecl(final String name, final DeclType type) {
+    public VarDecl(final String name, final DeclType type) {
         super(name, type);
         indexToConst = Containers.createMap();
     }

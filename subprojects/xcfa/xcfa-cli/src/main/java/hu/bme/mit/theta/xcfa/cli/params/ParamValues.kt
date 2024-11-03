@@ -43,6 +43,7 @@ import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.core.decl.VarDecl
 import hu.bme.mit.theta.core.type.booltype.BoolExprs
 import hu.bme.mit.theta.core.utils.ExprUtils
+import hu.bme.mit.theta.core.utils.StmtUtils
 import hu.bme.mit.theta.solver.Solver
 import hu.bme.mit.theta.solver.SolverFactory
 import hu.bme.mit.theta.xcfa.analysis.*
@@ -51,6 +52,7 @@ import hu.bme.mit.theta.xcfa.analysis.por.*
 import hu.bme.mit.theta.xcfa.cli.utils.XcfaDistToErrComparator
 import hu.bme.mit.theta.xcfa.collectAssumes
 import hu.bme.mit.theta.xcfa.collectVars
+import hu.bme.mit.theta.xcfa.getInvokeLabels
 import hu.bme.mit.theta.xcfa.model.XCFA
 import java.lang.reflect.Type
 
@@ -320,12 +322,27 @@ enum class InitPrec(
     ),
     ALLASSUMES(
         explPrec = { xcfa ->
-            XcfaPrec(
-                PtrPrec(ExplPrec.of(xcfa.collectAssumes().flatMap(ExprUtils::getVars)), emptySet()))
+            XcfaPrec(PtrPrec(ExplPrec.of(xcfa.collectAssumes().flatMap(ExprUtils::getVars)), emptySet()))
         },
         predPrec = { xcfa -> XcfaPrec(PtrPrec(PredPrec.of(xcfa.collectAssumes()), emptySet())) },
     ),
-
+    PARAMASSUMES(
+        explPrec = { xcfa -> XcfaPrec(PtrPrec(ExplPrec.of(xcfa.collectAssumes { assumeStmt ->
+                val paramVars = xcfa.procedures.flatMap { it.params }.map { it.first }
+                val argumentVars = xcfa.getInvokeLabels().flatMap { it.params }.flatMap(ExprUtils::getVars)
+                StmtUtils.getVars(assumeStmt).any { varDecl ->
+                    paramVars.contains(varDecl) || argumentVars.contains(varDecl)
+                }
+            }.flatMap(ExprUtils::getVars)), emptySet()))
+        },
+        predPrec = { xcfa -> XcfaPrec(PtrPrec(PredPrec.of(xcfa.collectAssumes { assumeStmt ->
+            val paramVars = xcfa.procedures.flatMap { it.params }.map { it.first }
+            val argumentVars = xcfa.getInvokeLabels().flatMap { it.params }.flatMap(ExprUtils::getVars)
+            StmtUtils.getVars(assumeStmt).any { varDecl ->
+                paramVars.contains(varDecl) || argumentVars.contains(varDecl)
+            }
+        }), emptySet())) },
+    ),
 }
 
 enum class ConeOfInfluenceMode(

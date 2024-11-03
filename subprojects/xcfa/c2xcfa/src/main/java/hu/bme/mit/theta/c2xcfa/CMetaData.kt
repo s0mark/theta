@@ -15,10 +15,7 @@
  */
 package hu.bme.mit.theta.c2xcfa
 
-import hu.bme.mit.theta.xcfa.model.MetaData
-import hu.bme.mit.theta.xcfa.model.XcfaEdge
-import hu.bme.mit.theta.xcfa.model.XcfaLabel
-import hu.bme.mit.theta.xcfa.model.XcfaLocation
+import hu.bme.mit.theta.xcfa.model.*
 
 data class CMetaData(
     val lineNumberStart: Int?,
@@ -53,3 +50,5 @@ fun XcfaEdge.getCMetaData(): CMetaData? {
         null
     }
 }
+
+fun XcfaGlobalVar.getCMetaData() = this.metadata as? CMetaData

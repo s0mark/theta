@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":theta-core"))
     implementation(project(":theta-analysis"))
     implementation(project(":theta-xcfa"))
+    implementation(project(":theta-arg2acsl"))
     implementation(project(":theta-xcfa-analysis"))
     implementation(project(":theta-xcfa2chc"))
     implementation(project(":theta-c2xcfa"))

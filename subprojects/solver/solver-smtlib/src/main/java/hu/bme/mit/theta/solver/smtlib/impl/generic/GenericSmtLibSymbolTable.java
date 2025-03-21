@@ -30,12 +30,12 @@ import java.util.Map;
 
 public class GenericSmtLibSymbolTable implements SmtLibSymbolTable {
 
-    private static final String problematicCharactersRegex = "[:#]";
-    private static final String problematicCharactersReplacement = "\\$";
+    public static final String problematicCharactersRegex = "[:#]";
+    public static final String problematicCharactersReplacement = "\\$";
 
-    private final BiMap<ConstDecl<?>, String> constToSymbol;
-    private final BiMap<ConstDecl<?>, String> constToDeclaration;
-    private final Map<String, EnumLitExpr> symbolToEnumLiteral;
+    protected final BiMap<ConstDecl<?>, String> constToSymbol;
+    protected final BiMap<ConstDecl<?>, String> constToDeclaration;
+    protected final Map<String, EnumLitExpr> symbolToEnumLiteral;
 
     public GenericSmtLibSymbolTable() {
         constToSymbol = Maps.synchronizedBiMap(HashBiMap.create());

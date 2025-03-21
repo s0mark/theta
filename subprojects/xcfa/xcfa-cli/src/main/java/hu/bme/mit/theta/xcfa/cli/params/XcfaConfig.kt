@@ -207,6 +207,8 @@ data class BackendConfig<T : SpecBackendConfig>(
 data class CegarConfig(
   @Parameter(names = ["--initprec"], description = "Initial precision")
   var initPrec: InitPrec = InitPrec.EMPTY,
+  @Parameter(names = ["--prec-file"], description = "File of precision to reuse")
+  var precFile: String? = null,
   @Parameter(names = ["--por-level"], description = "POR dependency level")
   var porLevel: POR = POR.NOPOR,
   @Parameter(names = ["--por-seed"], description = "Random seed used for DPOR")

@@ -109,9 +109,11 @@ private fun propagateInputOptions(config: XcfaConfig<*, *>, logger: Logger, uniq
   }
   (config.backendConfig.specConfig as? CegarConfig)?.let { cegarConfig ->
     if (cegarConfig.initPrec == InitPrec.REUSE) {
-      cegarConfig.precFile?.let { precFile ->
-        PrecReuse.enable(precFile, config.outputConfig.resultFolder)
-      } ?: logger.write(Logger.Level.INFO, "Precision reuse selected, but no precision file specified. Use the --prec-file to provide the precision.")
+      cegarConfig.precFile?.let { precFilename ->
+        val precFile = File(precFilename)
+        if (precFile.exists()) PrecReuse.setInput(precFile)
+        else logger.write(Logger.Level.INFO, "Precision reuse selected, but provided precision file does not exist. Proceeding with empty initial precision.\n")
+      } ?: logger.write(Logger.Level.INFO, "Precision reuse selected, but no precision file specified. Use the --prec-file to provide the precision. Proceeding with empty initial precision.\n")
     }
   }
 
@@ -404,6 +406,7 @@ private fun postVerificationLogging(
 
       val resultFolder = config.outputConfig.resultFolder
       resultFolder.mkdirs()
+      PrecReuse.writeTo(resultFolder)
 
       logger.write(
         Logger.Level.INFO,

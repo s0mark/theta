@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.frontend.transformation.model.types.complex.integer;
 
 import hu.bme.mit.theta.frontend.ParseContext;
@@ -33,7 +32,6 @@ public class Fitsall extends CInteger implements Unsigned {
         return visitor.visit(this, param);
     }
 
-
     @Override
     public String getTypeName() {
         return "fitsall";
@@ -41,7 +39,7 @@ public class Fitsall extends CInteger implements Unsigned {
 
     @Override
     public CInteger getSignedVersion() {
-        throw new RuntimeException("Bool does not have a signed version!");
+        throw new RuntimeException("Fitsall does not have a signed version!");
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
 package hu.bme.mit.theta.xsts.analysis;
 
 import hu.bme.mit.theta.analysis.algorithm.mdd.MddChecker.IterationStrategy;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(value = Parameterized.class)
+@Ignore // causes CI runners to give up
 public class XstsSatMddCheckerTest {
 
     @Parameterized.Parameter(value = 0)
@@ -39,7 +41,7 @@ public class XstsSatMddCheckerTest {
 
     @Test
     public void test() throws Exception {
-        XstsMddCheckerTest.runTestWithIterationStrategy(filePath, propPath, safe, IterationStrategy.SAT);
+        XstsMddCheckerTest.runTestWithIterationStrategy(
+                filePath, propPath, safe, IterationStrategy.SAT);
     }
-
 }

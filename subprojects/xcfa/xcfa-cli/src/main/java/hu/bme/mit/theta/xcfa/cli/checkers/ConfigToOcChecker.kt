@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,32 +13,39 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.xcfa.cli.checkers
 
-import hu.bme.mit.theta.analysis.Trace
-import hu.bme.mit.theta.analysis.algorithm.EmptyWitness
+import hu.bme.mit.theta.analysis.Cex
+import hu.bme.mit.theta.analysis.algorithm.EmptyProof
 import hu.bme.mit.theta.analysis.algorithm.SafetyChecker
-import hu.bme.mit.theta.analysis.algorithm.SafetyResult
-import hu.bme.mit.theta.analysis.ptr.PtrState
 import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.graphsolver.patterns.constraints.MCM
-import hu.bme.mit.theta.xcfa.analysis.XcfaAction
 import hu.bme.mit.theta.xcfa.analysis.XcfaPrec
-import hu.bme.mit.theta.xcfa.analysis.XcfaState
 import hu.bme.mit.theta.xcfa.analysis.oc.XcfaOcChecker
 import hu.bme.mit.theta.xcfa.cli.params.OcConfig
 import hu.bme.mit.theta.xcfa.cli.params.XcfaConfig
 import hu.bme.mit.theta.xcfa.model.XCFA
 
-fun getOcChecker(xcfa: XCFA, mcm: MCM,
-    config: XcfaConfig<*, *>,
-    logger: Logger): SafetyChecker<EmptyWitness, Trace<XcfaState<out PtrState<*>>, XcfaAction>, XcfaPrec<*>> {
-    val ocChecker = XcfaOcChecker(xcfa, (config.backendConfig.specConfig as OcConfig).decisionProcedure, logger)
-    return object : SafetyChecker<EmptyWitness, Trace<XcfaState<out PtrState<*>>, XcfaAction>, XcfaPrec<*>> {
-        override fun check(
-            prec: XcfaPrec<*>?): SafetyResult<EmptyWitness, Trace<XcfaState<out PtrState<*>>, XcfaAction>> = check()
-
-        override fun check(): SafetyResult<EmptyWitness, Trace<XcfaState<out PtrState<*>>, XcfaAction>> = ocChecker.check()
-    }
+fun getOcChecker(
+  xcfa: XCFA,
+  mcm: MCM,
+  config: XcfaConfig<*, *>,
+  logger: Logger,
+): SafetyChecker<EmptyProof, Cex, XcfaPrec<*>> {
+  val ocConfig = config.backendConfig.specConfig as OcConfig
+  val ocChecker =
+    XcfaOcChecker(
+      xcfa = xcfa,
+      decisionProcedure = ocConfig.decisionProcedure,
+      smtSolver = ocConfig.smtSolver,
+      logger = logger,
+      conflictInput = ocConfig.inputConflictClauseFile,
+      outputConflictClauses = ocConfig.outputConflictClauses,
+      nonPermissiveValidation = ocConfig.nonPermissiveValidation,
+      autoConflictConfig = ocConfig.autoConflict,
+      autoConflictBound = ocConfig.autoConflictBound,
+      memoryModel = ocConfig.memoryConsistencyModel,
+      acceptUnreliableSafe = config.outputConfig.acceptUnreliableSafe,
+    )
+  return SafetyChecker { ocChecker.check() }
 }

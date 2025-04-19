@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,15 +13,25 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.llvm2xcfa;
 
 import hu.bme.mit.theta.xcfa.model.MetaData;
+import org.jetbrains.annotations.NotNull;
 
 public class LlvmMetadata extends MetaData {
     private final int lineNumber;
 
     public LlvmMetadata(int lineNumber) {
         this.lineNumber = lineNumber;
+    }
+
+    @NotNull @Override
+    public MetaData combine(@NotNull MetaData other) {
+        return this;
+    }
+
+    @Override
+    public boolean isSubstantial() {
+        return lineNumber > 0;
     }
 }

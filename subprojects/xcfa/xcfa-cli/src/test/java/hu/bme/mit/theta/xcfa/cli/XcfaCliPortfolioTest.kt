@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,67 +18,107 @@ package hu.bme.mit.theta.xcfa.cli
 import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.common.logging.NullLogger
 import hu.bme.mit.theta.frontend.ParseContext
-import hu.bme.mit.theta.frontend.transformation.grammar.preprocess.ArithmeticTrait
 import hu.bme.mit.theta.graphsolver.patterns.constraints.MCM
 import hu.bme.mit.theta.xcfa.cli.params.SpecBackendConfig
 import hu.bme.mit.theta.xcfa.cli.params.SpecFrontendConfig
 import hu.bme.mit.theta.xcfa.cli.params.XcfaConfig
-import hu.bme.mit.theta.xcfa.cli.portfolio.STM
-import hu.bme.mit.theta.xcfa.cli.portfolio.complexPortfolio23
-import hu.bme.mit.theta.xcfa.cli.portfolio.complexPortfolio24
+import hu.bme.mit.theta.xcfa.cli.portfolio.*
 import hu.bme.mit.theta.xcfa.model.XCFA
+import java.util.stream.Stream
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.util.stream.Stream
 
 class XcfaCliPortfolioTest {
-    companion object {
+  companion object {
 
-
-        @JvmStatic
-        fun portfolios(): Stream<Arguments> {
-            return Stream.of(
-                Arguments.of({ xcfa: XCFA,
-                    mcm: MCM,
-                    parseContext: ParseContext,
-                    portfolioConfig: XcfaConfig<*, *>,
-                    logger: Logger,
-                    uniqueLogger: Logger ->
-                    complexPortfolio23(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
-                }),
-                Arguments.of({ xcfa: XCFA,
-                    mcm: MCM,
-                    parseContext: ParseContext,
-                    portfolioConfig: XcfaConfig<*, *>,
-                    logger: Logger,
-                    uniqueLogger: Logger ->
-                    complexPortfolio24(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
-                }),
-            )
-        }
-
+    @JvmStatic
+    fun portfolios(): Stream<Arguments> {
+      return Stream.of(
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          complexPortfolio23(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          complexPortfolio24(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          complexPortfolio25(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          boundedPortfolio24(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          boundedPortfolio25(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+        Arguments.of({
+          xcfa: XCFA,
+          mcm: MCM,
+          parseContext: ParseContext,
+          portfolioConfig: XcfaConfig<*, *>,
+          logger: Logger,
+          uniqueLogger: Logger ->
+          hornPortfolio25(xcfa, mcm, parseContext, portfolioConfig, logger, uniqueLogger)
+        }),
+      )
     }
+  }
 
-    @ParameterizedTest
-    @MethodSource("portfolios")
-    fun testPortfolio(portfolio: (xcfa: XCFA,
+  @ParameterizedTest
+  @MethodSource("portfolios")
+  fun testPortfolio(
+    portfolio:
+      (
+        xcfa: XCFA,
         mcm: MCM,
         parseContext: ParseContext,
         portfolioConfig: XcfaConfig<*, *>,
         logger: Logger,
-        uniqueLogger: Logger) -> STM) {
+        uniqueLogger: Logger,
+      ) -> STM
+  ) {
+    val stm =
+      portfolio(
+        XCFA("name", setOf()),
+        emptySet(),
+        ParseContext(),
+        XcfaConfig<SpecFrontendConfig, SpecBackendConfig>(),
+        NullLogger.getInstance(),
+        NullLogger.getInstance(),
+      )
 
-        for (value in ArithmeticTrait.values()) {
-
-            val stm = portfolio(XCFA("name", setOf()), emptySet(), ParseContext(),
-                XcfaConfig<SpecFrontendConfig, SpecBackendConfig>(), NullLogger.getInstance(), NullLogger.getInstance())
-
-            Assertions.assertTrue(stm.visualize().isNotEmpty())
-        }
-
-    }
-
-
+    val vis = stm.visualize()
+    System.err.println(vis)
+    Assertions.assertTrue(vis.isNotEmpty())
+  }
 }

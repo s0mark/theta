@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,27 +21,27 @@ import hu.bme.mit.theta.analysis.expr.refinement.ItpRefutation
 import hu.bme.mit.theta.analysis.expr.refinement.RefutationToPrec
 import hu.bme.mit.theta.common.Utils
 
-/**
- * Transformer from interpolant refutation to pointer precision.
- */
+/** Transformer from interpolant refutation to pointer precision. */
 class ItpRefToPtrPrec<P : Prec>(private val innerRefToPrec: RefutationToPrec<P, ItpRefutation>) :
-    RefutationToPrec<PtrPrec<P>, ItpRefutation> {
+  RefutationToPrec<PtrPrec<P>, ItpRefutation> {
 
-    override fun toPrec(refutation: ItpRefutation, index: Int): PtrPrec<P> {
-        val newDerefs = refutation[index].dereferences
-        val innerPrec = innerRefToPrec.toPrec(refutation, index).repatch()
-        return PtrPrec(innerPrec, newDerefs.flatMap { it.ops }.toSet(),
-            if (newDerefs.isEmpty()) 0 else refutation.size() - index)
-    }
+  override fun toPrec(refutation: ItpRefutation, index: Int): PtrPrec<P> {
+    val newDerefs = refutation[index].dereferences
+    val innerPrec = innerRefToPrec.toPrec(refutation, index).repatch()
+    return PtrPrec(
+      innerPrec,
+      newDerefs.flatMap { it.ops }.toSet(),
+      if (newDerefs.isEmpty()) 0 else refutation.size() - index,
+    )
+  }
 
-    override fun join(prec1: PtrPrec<P>, prec2: PtrPrec<P>): PtrPrec<P> {
-        Preconditions.checkNotNull(prec1)
-        Preconditions.checkNotNull(prec2)
-        return PtrPrec(innerRefToPrec.join(prec1.innerPrec, prec2.innerPrec))
-    }
+  override fun join(prec1: PtrPrec<P>, prec2: PtrPrec<P>): PtrPrec<P> {
+    Preconditions.checkNotNull(prec1)
+    Preconditions.checkNotNull(prec2)
+    return PtrPrec(innerRefToPrec.join(prec1.innerPrec, prec2.innerPrec))
+  }
 
-    override fun toString(): String {
-        return Utils.lispStringBuilder(javaClass.simpleName).aligned().add(innerRefToPrec)
-            .toString()
-    }
+  override fun toString(): String {
+    return Utils.lispStringBuilder(javaClass.simpleName).aligned().add(innerRefToPrec).toString()
+  }
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.xcfa.analysis
 
+import hu.bme.mit.theta.analysis.algorithm.bounded.ReversibleAction
 import hu.bme.mit.theta.analysis.ptr.PtrAction
 import hu.bme.mit.theta.analysis.ptr.WriteTriples
 import hu.bme.mit.theta.core.stmt.Stmt
@@ -24,36 +24,44 @@ import hu.bme.mit.theta.xcfa.passes.flatten
 
 data class XcfaAction
 @JvmOverloads
-constructor(val pid: Int, val edge: XcfaEdge, private val lastWrites: WriteTriples = emptyMap(),
-    private val nextCnt: Int = 0) :
-    PtrAction(lastWrites, nextCnt) {
+constructor(
+  val pid: Int,
+  val edge: XcfaEdge,
+  private val lastWrites: WriteTriples = emptyMap(),
+  private val nextCnt: Int = 0,
+) : PtrAction(lastWrites, nextCnt), ReversibleAction {
 
-    val source: XcfaLocation = edge.source
-    val target: XcfaLocation = edge.target
-    val label: XcfaLabel = edge.label
-    private val stmts: List<Stmt> = label.toStmt().flatten()
+  val source: XcfaLocation = edge.source
+  val target: XcfaLocation = edge.target
+  val label: XcfaLabel = edge.label
+  private val stmts: List<Stmt> = label.toStmt().flatten()
 
-    constructor(pid: Int,
-        source: XcfaLocation,
-        target: XcfaLocation,
-        label: XcfaLabel = NopLabel,
-        lastWrites: WriteTriples = emptyMap(),
-        nextCnt: Int = 0) :
-        this(pid, XcfaEdge(source, target, label), lastWrites, nextCnt)
+  constructor(
+    pid: Int,
+    source: XcfaLocation,
+    target: XcfaLocation,
+    label: XcfaLabel = NopLabel,
+    metaData: MetaData = EmptyMetaData,
+    lastWrites: WriteTriples = emptyMap(),
+    nextCnt: Int = 0,
+  ) : this(pid, XcfaEdge(source, target, label, metaData), lastWrites, nextCnt)
 
-    override val stmtList: List<Stmt>
-        get() = stmts
+  override val stmtList: List<Stmt>
+    get() = stmts
 
-    override fun toString(): String {
-        return "$pid: $source -> $target [${getStmts()}]"
-    }
+  override fun reverse(): ReversibleAction {
+    return XcfaAction(pid, XcfaEdge(target, source, label, edge.metadata))
+  }
 
-    fun withLabel(sequenceLabel: SequenceLabel): XcfaAction {
-        return XcfaAction(pid, source, target, sequenceLabel, nextCnt = nextCnt)
-    }
+  override fun toString(): String {
+    return "$pid: $source -> $target [${getStmts()}]"
+  }
 
-    fun withLastWrites(writeTriples: WriteTriples, nextCnt: Int): XcfaAction {
-        return XcfaAction(pid, source, target, label, writeTriples, nextCnt)
-    }
+  fun withLabel(sequenceLabel: SequenceLabel): XcfaAction {
+    return XcfaAction(pid, source, target, sequenceLabel, edge.metadata, nextCnt = nextCnt)
+  }
 
+  fun withLastWrites(writeTriples: WriteTriples, nextCnt: Int): XcfaAction {
+    return XcfaAction(pid, source, target, label, edge.metadata, writeTriples, nextCnt)
+  }
 }

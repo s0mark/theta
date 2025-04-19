@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import hu.bme.mit.theta.core.utils.indexings.BasicVarIndexing
 import hu.bme.mit.theta.core.utils.indexings.VarIndexing
 import hu.bme.mit.theta.frontend.FrontendMetadata
 import hu.bme.mit.theta.frontend.ParseContext
+import hu.bme.mit.theta.frontend.transformation.model.statements.CStatement
 import hu.bme.mit.theta.grammar.dsl.expr.ExpressionWrapper
 import hu.bme.mit.theta.grammar.dsl.stmt.StatementWrapper
 import hu.bme.mit.theta.grammar.dsl.type.TypeWrapper
@@ -37,84 +38,121 @@ import hu.bme.mit.theta.grammar.gson.StringTypeAdapter
 import hu.bme.mit.theta.grammar.gson.VarDeclAdapter
 import hu.bme.mit.theta.xcfa.XcfaScope
 import hu.bme.mit.theta.xcfa.model.*
+import java.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.util.*
 
 class GsonTest {
 
-    private fun getGson(scope: XcfaScope, env: Env, newScope: Boolean): Gson {
-        val gsonBuilder = GsonBuilder()
-        lateinit var gson: Gson
-        gsonBuilder.registerTypeHierarchyAdapter(XcfaLocation::class.java,
-            StringTypeAdapter(xcfaLocationAdapter))
-        gsonBuilder.registerTypeHierarchyAdapter(XCFA::class.java, XcfaAdapter { gson })
-        gsonBuilder.registerTypeHierarchyAdapter(VarDecl::class.java,
-            VarDeclAdapter({ gson }, scope, env, !newScope))
-        gsonBuilder.registerTypeHierarchyAdapter(Stmt::class.java,
-            StringTypeAdapter { StatementWrapper(it, scope).instantiate(env) })
-        gsonBuilder.registerTypeHierarchyAdapter(Expr::class.java,
-            StringTypeAdapter { ExpressionWrapper(scope, it).instantiate(env) })
-        gsonBuilder.registerTypeHierarchyAdapter(Type::class.java,
-            StringTypeAdapter { TypeWrapper(it).instantiate() })
-        gsonBuilder.registerTypeHierarchyAdapter(VarIndexing::class.java,
-            StringTypeAdapter { BasicVarIndexing.fromString(it, scope, env) })
-        gsonBuilder.registerTypeHierarchyAdapter(XcfaLabel::class.java,
-            XcfaLabelAdapter(scope, env, { gson }))
-        gsonBuilder.registerTypeHierarchyAdapter(MetaData::class.java, MetaDataAdapter())
-        gsonBuilder.registerTypeHierarchyAdapter(Pair::class.java, PairAdapter<Any, Any> { gson })
-        gsonBuilder.registerTypeHierarchyAdapter(Optional::class.java, OptionalAdapter<Any> { gson })
-        gsonBuilder.registerTypeHierarchyAdapter(ParseContext::class.java,
-            ParseContextAdapter { gson })
-        gsonBuilder.registerTypeHierarchyAdapter(FrontendMetadata::class.java,
-            FrontendMetadataAdapter { gson })
-        gson = gsonBuilder.create()
-        return gson
-    }
+  private fun getGson(scope: XcfaScope, env: Env, newScope: Boolean): Gson {
+    val gsonBuilder = GsonBuilder()
+    lateinit var gson: Gson
+    gsonBuilder.registerTypeHierarchyAdapter(XcfaLocation::class.java, XcfaLocationAdapter { gson })
+    gsonBuilder.registerTypeHierarchyAdapter(XCFA::class.java, XcfaAdapter { gson })
+    gsonBuilder.registerTypeHierarchyAdapter(
+      VarDecl::class.java,
+      VarDeclAdapter({ gson }, scope, env, !newScope),
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(
+      Stmt::class.java,
+      StringTypeAdapter { StatementWrapper(it, scope).instantiate(env) },
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(
+      Expr::class.java,
+      StringTypeAdapter { ExpressionWrapper(scope, it).instantiate(env) },
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(
+      Type::class.java,
+      StringTypeAdapter { TypeWrapper(it).instantiate() },
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(
+      VarIndexing::class.java,
+      StringTypeAdapter { BasicVarIndexing.fromString(it, scope, env) },
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(
+      XcfaLabel::class.java,
+      XcfaLabelAdapter(scope, env, { gson }),
+    )
+    gsonBuilder.registerTypeHierarchyAdapter(MetaData::class.java, MetaDataAdapter())
+    gsonBuilder.registerTypeHierarchyAdapter(Pair::class.java, PairAdapter<Any, Any> { gson })
+    gsonBuilder.registerTypeHierarchyAdapter(Optional::class.java, OptionalAdapter<Any> { gson })
+    gsonBuilder.registerTypeHierarchyAdapter(ParseContext::class.java, ParseContextAdapter { gson })
+    gsonBuilder.registerTypeHierarchyAdapter(CStatement::class.java, CStatementAdapter())
+    gsonBuilder.registerTypeHierarchyAdapter(
+      FrontendMetadata::class.java,
+      FrontendMetadataAdapter { gson },
+    )
+    gson = gsonBuilder.create()
+    return gson
+  }
 
-    @Test
-    fun testRoundtrip() {
-        val xcfaSource = xcfa("example") {
-            global { "x" type Int() init "0" }
-            procedure("main") {
-                (init to final) {
-                    "proc1"("x")
-                }
-            }
-            procedure("proc1") {
-                (init to final) {
-                    assume("true")
-                }
-            }
+  @Test
+  fun testRoundtrip() {
+    val xcfaSource =
+      xcfa("example") {
+        global { "x" type Int() init "0" }
+        procedure("main") { (init to final) { "proc1"("x") } }
+        procedure("proc1") { (init to final) { assume("true") } }
+      }
+
+    val symbolTable = XcfaScope(SymbolTable())
+    val x_symbol = NamedSymbol("x")
+    symbolTable.add(x_symbol)
+    val env = Env()
+    env.define(x_symbol, xcfaSource.globalVars.find { it.wrappedVar.name == "x" }!!.wrappedVar)
+    val gson = getGson(symbolTable, env, true)
+
+    val output = gson.fromJson(gson.toJson(xcfaSource), XCFA::class.java)
+    println(xcfaSource)
+    println(output)
+    assertEquals(xcfaSource, output)
+  }
+
+  @Test
+  fun testAsyncRoundtrip() {
+    val xcfaSource =
+      xcfa("example") {
+        global {
+          "x" type Int() init "0"
+          "thr1" type Int() init "0"
         }
+        procedure("main") { (init to final) { "thr1".start("proc1", "(mod x 0)") } }
+        procedure("proc1") { (init to final) { assume("true") } }
+      }
 
-        val symbolTable = XcfaScope(SymbolTable())
-        val x_symbol = NamedSymbol("x")
-        symbolTable.add(x_symbol)
-        val env = Env()
-        env.define(x_symbol, xcfaSource.vars.find { it.wrappedVar.name == "x" }!!.wrappedVar)
-        val gson = getGson(symbolTable, env, true)
+    val symbolTable = XcfaScope(SymbolTable())
+    val x_symbol = NamedSymbol("x")
+    val thr1_symbol = NamedSymbol("thr1")
+    symbolTable.add(x_symbol)
+    symbolTable.add(thr1_symbol)
+    val env = Env()
+    env.define(x_symbol, xcfaSource.globalVars.find { it.wrappedVar.name == "x" }!!.wrappedVar)
+    env.define(
+      thr1_symbol,
+      xcfaSource.globalVars.find { it.wrappedVar.name == "thr1" }!!.wrappedVar,
+    )
+    val gson = getGson(symbolTable, env, true)
 
-        val output = gson.fromJson(gson.toJson(xcfaSource), XCFA::class.java)
-        println(xcfaSource)
-        println(output)
-        assertEquals(xcfaSource, output)
-    }
+    val output = gson.fromJson(gson.toJson(xcfaSource), XCFA::class.java)
+    println(xcfaSource)
+    println(output)
+    assertEquals(xcfaSource, output)
+  }
 
-    @Test
-    fun testParseContextRoundTrip() {
-        val parseContext = ParseContext()
-        parseContext.metadata.create("owner", "key", "value")
+  @Test
+  fun testParseContextRoundTrip() {
+    val parseContext = ParseContext()
+    parseContext.metadata.create("owner", "key", "value")
 
-        val symbolTable = XcfaScope(SymbolTable())
-        val x_symbol = NamedSymbol("x")
-        symbolTable.add(x_symbol)
-        val env = Env()
+    val symbolTable = XcfaScope(SymbolTable())
+    val x_symbol = NamedSymbol("x")
+    symbolTable.add(x_symbol)
+    val env = Env()
 
-        val gson = getGson(symbolTable, env, true)
-        assertEquals(parseContext.metadata.lookupKeyValue,
-            gson.fromJson(gson.toJson(parseContext), ParseContext::class.java).metadata.lookupKeyValue)
-
-    }
-
+    val gson = getGson(symbolTable, env, true)
+    assertEquals(
+      parseContext.metadata.lookupKeyValue,
+      gson.fromJson(gson.toJson(parseContext), ParseContext::class.java).metadata.lookupKeyValue,
+    )
+  }
 }

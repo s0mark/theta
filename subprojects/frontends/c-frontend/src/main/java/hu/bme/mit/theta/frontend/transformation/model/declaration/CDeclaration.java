@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.frontend.transformation.model.declaration;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import hu.bme.mit.theta.core.decl.VarDecl;
 import hu.bme.mit.theta.frontend.transformation.model.statements.CDecls;
@@ -50,7 +51,7 @@ public class CDeclaration {
     private String sourceText = "";
 
     public CDeclaration(CSimpleType cSimpleType) {
-        this.name = null;
+        this.name = checkNotNull(cSimpleType).getAssociatedName();
         this.type = cSimpleType;
         this.derefCounter = cSimpleType.getPointerLevel();
         this.varDecls = new ArrayList<>();
@@ -98,13 +99,20 @@ public class CDeclaration {
         for (CStatement arrayDimension : arrayDimensions) {
             CSimpleType simpleType = type.copyOf();
             simpleType.incrementPointer();
-            actualType = new CArray(simpleType, actualType, actualType.getParseContext()); // some day change this back to arrays, when simple & complex types are better synchronized...
+            actualType =
+                    new CArray(
+                            simpleType,
+                            actualType,
+                            actualType.getParseContext(),
+                            arrayDimension); // some day change this back to arrays, when simple &
+            // complex types are better synchronized...
         }
-//        for (int i = 0; i < derefCounter; i++) {
-//            CSimpleType simpleType = type.copyOf();
-//            simpleType.incrementPointer();
-//            actualType = new CPointer(simpleType, actualType, actualType.getParseContext());
-//        }
+        //        for (int i = 0; i < derefCounter; i++) {
+        //            CSimpleType simpleType = type.copyOf();
+        //            simpleType.incrementPointer();
+        //            actualType = new CPointer(simpleType, actualType,
+        // actualType.getParseContext());
+        //        }
 
         return actualType;
     }

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,27 +13,36 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.frontend.transformation.model.statements;
 
 import hu.bme.mit.theta.core.decl.VarDecl;
 import hu.bme.mit.theta.frontend.ParseContext;
 import hu.bme.mit.theta.frontend.transformation.model.declaration.CDeclaration;
-
 import java.util.List;
+import java.util.Set;
 
 public class CFunction extends CStatement {
 
     private final CDeclaration funcDecl;
     private final CStatement compound;
     private final List<VarDecl<?>> flatVariables;
+    private final Set<VarDecl<?>> atomicVariables;
 
-    public CFunction(CDeclaration funcDecl, CStatement compound, List<VarDecl<?>> flatVariables, ParseContext parseContext) {
+    public CFunction(
+            CDeclaration funcDecl,
+            CStatement compound,
+            List<VarDecl<?>> flatVariables,
+            ParseContext parseContext,
+            Set<VarDecl<?>> atomicVariables) {
         super(parseContext);
         this.funcDecl = funcDecl;
         this.compound = compound;
+        if (compound != null) compound.setParent(this);
         this.flatVariables = flatVariables;
-        parseContext.getMetadata().lookupMetadata(funcDecl)
+        this.atomicVariables = atomicVariables;
+        parseContext
+                .getMetadata()
+                .lookupMetadata(funcDecl)
                 .forEach((s, o) -> parseContext.getMetadata().create(this, s, o));
     }
 
@@ -52,5 +61,9 @@ public class CFunction extends CStatement {
     @Override
     public <P, R> R accept(CStatementVisitor<P, R> visitor, P param) {
         return visitor.visit(this, param);
+    }
+
+    public Set<VarDecl<?>> getAtomicVariables() {
+        return atomicVariables;
     }
 }

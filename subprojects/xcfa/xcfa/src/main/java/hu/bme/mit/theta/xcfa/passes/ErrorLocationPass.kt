@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.xcfa.passes
 
 import hu.bme.mit.theta.xcfa.model.*
@@ -24,28 +23,37 @@ import hu.bme.mit.theta.xcfa.model.*
  */
 class ErrorLocationPass(private val checkOverflow: Boolean) : ProcedurePass {
 
-    override fun run(builder: XcfaProcedureBuilder): XcfaProcedureBuilder {
-        checkNotNull(builder.metaData["deterministic"])
-        for (edge in ArrayList(builder.getEdges())) {
-            val edges = edge.splitIf(this::predicate)
-            if (edges.size > 1 || (edges.size == 1 && predicate(
-                    (edges[0].label as SequenceLabel).labels[0]))) {
-                builder.removeEdge(edge)
-                edges.forEach {
-                    if (predicate((it.label as SequenceLabel).labels[0])) {
-                        if (builder.errorLoc.isEmpty) builder.createErrorLoc()
-                        builder.addEdge(
-                            XcfaEdge(it.source, builder.errorLoc.get(), SequenceLabel(listOf())))
-                    } else {
-                        builder.addEdge(it)
-                    }
-                }
-            }
+  override fun run(builder: XcfaProcedureBuilder): XcfaProcedureBuilder {
+    checkNotNull(builder.metaData["deterministic"])
+    for (edge in ArrayList(builder.getEdges())) {
+      val edges = edge.splitIf(this::predicate)
+      if (
+        edges.size > 1 ||
+          (edges.size == 1 && predicate((edges[0].label as SequenceLabel).labels[0]))
+      ) {
+        builder.removeEdge(edge)
+        edges.forEach {
+          val label = (it.label as SequenceLabel).labels[0]
+          if (predicate(label)) {
+            if (builder.errorLoc.isEmpty) builder.createErrorLoc()
+            builder.addEdge(
+              XcfaEdge(
+                it.source,
+                builder.errorLoc.get(),
+                SequenceLabel(listOf()),
+                metadata = label.metadata,
+              )
+            )
+          } else {
+            builder.addEdge(it)
+          }
         }
-        return builder
+      }
     }
+    return builder
+  }
 
-    private fun predicate(it: XcfaLabel): Boolean {
-        return it is InvokeLabel && it.name == if (checkOverflow) "overflow" else "reach_error"
-    }
+  private fun predicate(it: XcfaLabel): Boolean {
+    return it is InvokeLabel && it.name == if (checkOverflow) "overflow" else "reach_error"
+  }
 }

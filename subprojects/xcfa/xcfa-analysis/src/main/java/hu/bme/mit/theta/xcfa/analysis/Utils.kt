@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,12 +35,14 @@ import kotlin.reflect.KProperty
 
 fun <K, V> Map<K, V>.reverseMapping() = this.entries.associate { it.value to it.key }
 
-private fun Valuation.changeVars(varLut: Map<out Decl<*>, VarDecl<*>>, relevantVars: Collection<Decl<*>>): Valuation {
+fun Valuation.changeVars(varLut: Map<out Decl<*>, VarDecl<*>>, relevantVars: Collection<Decl<*>>): Valuation {
     val builder = ImmutableValuation.builder()
     this.decls.filter { it in relevantVars }.forEach {decl ->
-        builder.put(decl.changeVars(varLut), this.eval(decl).get())
+        if (decl in varLut) {
+            builder.put(decl.changeVars(varLut), this.eval(decl).get())
+        }
     }
-    return builder.build()
+  return builder.build()
 }
 
 private fun <T : Type> Expr<T>.changeVars(varLut: Map<out Decl<*>, VarDecl<*>>, relevantVars: Collection<Decl<*>>): Expr<T>? =
@@ -72,27 +74,27 @@ private fun <S : ExprState> S.getState(varLookup: Map<VarDecl<*>, VarDecl<*>>, r
 
 class LazyDelegate<T, P : Any>(val getProperty: T.() -> P) {
 
-    private var calculated = false
-    private lateinit var property: P
+  private var calculated = false
+  private lateinit var property: P
 
-    operator fun getValue(thisRef: T, property: KProperty<*>): P {
-        return if (calculated) this.property
-        else thisRef.getProperty().also {
-            this.property = it
-            this.calculated = true
-        }
-    }
+  operator fun getValue(thisRef: T, property: KProperty<*>): P {
+    return if (calculated) this.property
+    else
+      thisRef.getProperty().also {
+        this.property = it
+        this.calculated = true
+      }
+  }
 }
 
 val XCFA.isInlined: Boolean by LazyDelegate {
-    !this.procedures.any { p ->
-        p.edges.any { e ->
-            e.getFlatLabels().any { l ->
-                l is InvokeLabel && this.procedures.any { it.name == l.name }
-            }
-        }
+  !this.procedures.any { p ->
+    p.edges.any { e ->
+      e.getFlatLabels().any { l -> l is InvokeLabel && this.procedures.any { it.name == l.name } }
     }
+  }
 }
 
 fun XcfaProcessState.foldVarLookup(): Map<VarDecl<*>, VarDecl<*>> =
-    this.varLookup.reduceRightOrNull { lookup, acc -> acc + lookup } ?: emptyMap() // right map overrides left's keys
+  this.varLookup.reduceRightOrNull { lookup, acc -> acc + lookup }
+    ?: emptyMap() // right map overrides left's keys

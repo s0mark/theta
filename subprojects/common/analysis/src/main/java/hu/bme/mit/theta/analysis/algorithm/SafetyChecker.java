@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,19 +15,15 @@
  */
 package hu.bme.mit.theta.analysis.algorithm;
 
-import hu.bme.mit.theta.analysis.*;
-import hu.bme.mit.theta.analysis.algorithm.Checker;
-import hu.bme.mit.theta.analysis.algorithm.SafetyResult;
-import hu.bme.mit.theta.analysis.algorithm.arg.ARG;
+import hu.bme.mit.theta.analysis.Cex;
 
 @FunctionalInterface
-public interface SafetyChecker<W extends Witness, C extends Cex, I> extends Checker<W, I> {
+public interface SafetyChecker<Pr extends Proof, C extends Cex, I> extends Checker<Pr, I> {
 
     @Override
-    SafetyResult<W, C> check(final I input);
+    SafetyResult<Pr, C> check(final I input);
 
-    default SafetyResult<W, C> check() {
+    default SafetyResult<Pr, C> check() {
         return check(null);
     }
-
 }

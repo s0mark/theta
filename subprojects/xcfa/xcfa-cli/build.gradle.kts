@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 plugins {
     id("kotlin-common")
+    id("kaml-serialization")
     id("cli-tool")
 }
 
@@ -42,6 +43,7 @@ dependencies {
     implementation(project(":theta-litmus2xcfa"))
     implementation(project(":theta-graph-solver"))
     implementation(project(":theta-cat"))
+    implementation(project(":theta-cfa"))
     implementation(files(rootDir.resolve(Deps.z3legacy)))
     implementation("com.zaxxer:nuprocess:2.0.5")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jsr223:${Versions.kotlin}")
@@ -51,4 +53,3 @@ dependencies {
 application {
     mainClass.set("hu.bme.mit.theta.xcfa.cli.XcfaCli")
 }
-

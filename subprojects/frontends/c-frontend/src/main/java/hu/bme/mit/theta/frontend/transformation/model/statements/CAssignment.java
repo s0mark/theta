@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,20 +13,19 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.frontend.transformation.model.statements;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import hu.bme.mit.theta.core.type.Expr;
 import hu.bme.mit.theta.core.type.abstracttype.AbstractExprs;
 import hu.bme.mit.theta.core.type.bvtype.BvExprs;
 import hu.bme.mit.theta.core.type.bvtype.BvType;
 import hu.bme.mit.theta.frontend.ParseContext;
+import hu.bme.mit.theta.frontend.UnsupportedFrontendElementException;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType;
-
 import java.util.List;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 public class CAssignment extends CStatement {
 
@@ -34,11 +33,13 @@ public class CAssignment extends CStatement {
     private final CStatement rValue;
     private final String operator;
 
-    public CAssignment(Expr<?> lValue, CStatement rValue, String operator, ParseContext parseContext) {
+    public CAssignment(
+            Expr<?> lValue, CStatement rValue, String operator, ParseContext parseContext) {
         super(parseContext);
         checkNotNull(rValue.getExpression());
         this.lValue = lValue;
         this.rValue = rValue;
+        rValue.setParent(this);
         this.operator = operator;
     }
 
@@ -87,19 +88,37 @@ public class CAssignment extends CStatement {
                 ret = AbstractExprs.Sub(type.castTo(lValue), type.castTo(rExpression));
                 break;
             case "^=":
-                checkState(lValue.getType() instanceof BvType && rExpression.getType() instanceof BvType);
-                ret = BvExprs.Xor(List.of((Expr<BvType>) type.castTo(lValue), (Expr<BvType>) type.castTo(rExpression)));
+                checkState(
+                        lValue.getType() instanceof BvType
+                                && rExpression.getType() instanceof BvType);
+                ret =
+                        BvExprs.Xor(
+                                List.of(
+                                        (Expr<BvType>) type.castTo(lValue),
+                                        (Expr<BvType>) type.castTo(rExpression)));
                 break;
             case "&=":
-                checkState(lValue.getType() instanceof BvType && rExpression.getType() instanceof BvType);
-                ret = BvExprs.And(List.of((Expr<BvType>) type.castTo(lValue), (Expr<BvType>) type.castTo(rExpression)));
+                checkState(
+                        lValue.getType() instanceof BvType
+                                && rExpression.getType() instanceof BvType);
+                ret =
+                        BvExprs.And(
+                                List.of(
+                                        (Expr<BvType>) type.castTo(lValue),
+                                        (Expr<BvType>) type.castTo(rExpression)));
                 break;
             case "|=":
-                checkState(lValue.getType() instanceof BvType && rExpression.getType() instanceof BvType);
-                ret = BvExprs.Or(List.of((Expr<BvType>) type.castTo(lValue), (Expr<BvType>) type.castTo(rExpression)));
+                checkState(
+                        lValue.getType() instanceof BvType
+                                && rExpression.getType() instanceof BvType);
+                ret =
+                        BvExprs.Or(
+                                List.of(
+                                        (Expr<BvType>) type.castTo(lValue),
+                                        (Expr<BvType>) type.castTo(rExpression)));
                 break;
             default:
-                throw new RuntimeException("Bad operator: " + operator);
+                throw new UnsupportedFrontendElementException("Unsupported operator: " + operator);
         }
         parseContext.getMetadata().create(ret, "cType", CComplexType.getType(lValue, parseContext));
         ret = CComplexType.getType(lValue, parseContext).castTo(ret);

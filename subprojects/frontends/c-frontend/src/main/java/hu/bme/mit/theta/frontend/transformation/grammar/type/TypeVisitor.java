@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package hu.bme.mit.theta.frontend.transformation.grammar.type;
+
+import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.*;
 
 import hu.bme.mit.theta.c.frontend.dsl.gen.CBaseVisitor;
 import hu.bme.mit.theta.c.frontend.dsl.gen.CParser;
@@ -25,35 +26,16 @@ import hu.bme.mit.theta.common.logging.Logger;
 import hu.bme.mit.theta.common.logging.Logger.Level;
 import hu.bme.mit.theta.core.type.Expr;
 import hu.bme.mit.theta.frontend.ParseContext;
+import hu.bme.mit.theta.frontend.UnsupportedFrontendElementException;
 import hu.bme.mit.theta.frontend.transformation.grammar.preprocess.TypedefVisitor;
 import hu.bme.mit.theta.frontend.transformation.model.declaration.CDeclaration;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType;
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleType;
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory;
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.DeclaredName;
+import hu.bme.mit.theta.frontend.transformation.model.types.simple.*;
 import hu.bme.mit.theta.frontend.transformation.model.types.simple.Enum;
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.NamedType;
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.Struct;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Atomic;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.DeclaredName;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Enum;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Extern;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.NamedType;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Signed;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.ThreadLocal;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Typedef;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Unsigned;
-import static hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleTypeFactory.Volatile;
 
 public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     private final DeclarationVisitor declarationVisitor;
@@ -61,19 +43,21 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     private final ParseContext parseContext;
     private final Logger uniqueWarningLogger;
 
-
     private static final List<String> standardTypes =
             List.of("int", "char", "long", "short", "void", "float", "double", "unsigned", "_Bool");
     private static final List<String> shorthandTypes =
             List.of("long", "__int128", "short", "unsigned", "_Bool");
 
-    public TypeVisitor(DeclarationVisitor declarationVisitor, TypedefVisitor typedefVisitor, ParseContext parseContext, Logger uniqueWarningLogger) {
+    public TypeVisitor(
+            DeclarationVisitor declarationVisitor,
+            TypedefVisitor typedefVisitor,
+            ParseContext parseContext,
+            Logger uniqueWarningLogger) {
         this.declarationVisitor = declarationVisitor;
         this.typedefVisitor = typedefVisitor;
         this.parseContext = parseContext;
         this.uniqueWarningLogger = uniqueWarningLogger;
     }
-
 
     @Override
     public CSimpleType visitDeclarationSpecifiers(CParser.DeclarationSpecifiersContext ctx) {
@@ -91,25 +75,42 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     }
 
     private CSimpleType mergeCTypes(List<CSimpleType> cSimpleTypes) {
-        List<CSimpleType> enums = cSimpleTypes.stream().filter(cType -> cType instanceof Enum)
-                .collect(Collectors.toList());
+        List<CSimpleType> enums =
+                cSimpleTypes.stream()
+                        .filter(cType -> cType instanceof Enum)
+                        .collect(Collectors.toList());
         if (enums.size() > 0) {
-            uniqueWarningLogger.write(Level.INFO, "WARNING: enums are not yet supported! Using int instead.\n");
+            uniqueWarningLogger.write(
+                    Level.INFO, "WARNING: enums are not yet supported! Using int instead.\n");
             cSimpleTypes.add(NamedType("int", parseContext, uniqueWarningLogger));
             cSimpleTypes.removeAll(enums);
         }
-        List<CSimpleType> namedElements = cSimpleTypes.stream()
-                .map(o -> o instanceof DeclaredName declaredName ? typedefVisitor.getSimpleType(declaredName.getDeclaredName()).orElse(o) : o)
-                .filter(o -> o instanceof NamedType).collect(Collectors.toList());
+        List<CSimpleType> namedElements =
+                cSimpleTypes.stream()
+                        .map(
+                                o ->
+                                        o instanceof DeclaredName declaredName
+                                                ? typedefVisitor
+                                                        .getSimpleType(
+                                                                declaredName.getDeclaredName())
+                                                        .orElse(o)
+                                                : o)
+                        .filter(o -> o instanceof NamedType)
+                        .collect(Collectors.toList());
         if (namedElements.isEmpty()) {
             namedElements.add(NamedType("int", parseContext, uniqueWarningLogger));
         }
-        CSimpleType mainType = namedElements.get(namedElements.size() - 1); // if typedef, then last element is the associated name
+        CSimpleType mainType =
+                namedElements.get(
+                        namedElements.size()
+                                - 1); // if typedef, then last element is the associated name
         if (mainType instanceof DeclaredName declaredName) {
-            mainType = typedefVisitor.getSimpleType(declaredName.getDeclaredName()).orElse(mainType);
+            mainType =
+                    typedefVisitor.getSimpleType(declaredName.getDeclaredName()).orElse(mainType);
         }
 
-        if (mainType instanceof NamedType namedType && shorthandTypes.contains(namedType.getNamedType())) {
+        if (mainType instanceof NamedType namedType
+                && shorthandTypes.contains(namedType.getNamedType())) {
             mainType = NamedType("int", parseContext, uniqueWarningLogger);
         } else {
             cSimpleTypes.remove(mainType);
@@ -119,8 +120,10 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
         // we didn't get explicit signedness
         if (type.isSigned() == null) {
             if (type instanceof NamedType && ((NamedType) type).getNamedType().contains("char")) {
-                uniqueWarningLogger.write(Level.INFO,
-                        "WARNING: signedness of the type char is implementation specific. Right now it is interpreted as a signed char.\n");
+                uniqueWarningLogger.write(
+                        Level.INFO,
+                        "WARNING: signedness of the type char is implementation specific. Right now"
+                                + " it is interpreted as a signed char.\n");
             }
             type.setSigned(true);
         }
@@ -136,22 +139,23 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
             CParser.SpecifierQualifierListContext specifierQualifierListContext) {
         List<CSimpleType> cSimpleTypes = new ArrayList<>();
         if (specifierQualifierListContext != null) {
-            for (CParser.TypeSpecifierOrQualifierContext typeSpecifierOrQualifierContext : specifierQualifierListContext.typeSpecifierOrQualifier()) {
+            for (CParser.TypeSpecifierOrQualifierContext typeSpecifierOrQualifierContext :
+                    specifierQualifierListContext.typeSpecifierOrQualifier()) {
                 CSimpleType qualifierSpecifier = null;
                 if (typeSpecifierOrQualifierContext.typeSpecifier() != null) {
-                    qualifierSpecifier = typeSpecifierOrQualifierContext.typeSpecifier()
-                            .accept(this);
+                    qualifierSpecifier =
+                            typeSpecifierOrQualifierContext.typeSpecifier().accept(this);
                 } else if (typeSpecifierOrQualifierContext.typeQualifier() != null) {
-                    qualifierSpecifier = typeSpecifierOrQualifierContext.typeQualifier()
-                            .accept(this);
+                    qualifierSpecifier =
+                            typeSpecifierOrQualifierContext.typeQualifier().accept(this);
                 }
                 if (qualifierSpecifier != null) {
                     cSimpleTypes.add(qualifierSpecifier);
                 }
             }
             if (specifierQualifierListContext.typeSpecifierPointer() != null) {
-                CSimpleType qualifierSpecifier = specifierQualifierListContext.typeSpecifierPointer()
-                        .accept(this);
+                CSimpleType qualifierSpecifier =
+                        specifierQualifierListContext.typeSpecifierPointer().accept(this);
                 if (qualifierSpecifier != null) {
                     cSimpleTypes.add(qualifierSpecifier);
                 }
@@ -164,7 +168,8 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     private CSimpleType createCType(
             List<CParser.DeclarationSpecifierContext> declarationSpecifierContexts) {
         List<CSimpleType> cSimpleTypes = new ArrayList<>();
-        for (CParser.DeclarationSpecifierContext declarationSpecifierContext : declarationSpecifierContexts) {
+        for (CParser.DeclarationSpecifierContext declarationSpecifierContext :
+                declarationSpecifierContexts) {
             for (ParseTree child : declarationSpecifierContext.children) {
                 CSimpleType ctype = child.accept(this);
                 if (ctype != null) {
@@ -177,9 +182,7 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     }
 
     private CSimpleType createCType(
-            List<CastDeclarationSpecifierContext> spec1list,
-            TypeSpecifierPointerContext spec2
-    ) {
+            List<CastDeclarationSpecifierContext> spec1list, TypeSpecifierPointerContext spec2) {
         List<CSimpleType> cSimpleTypes = new ArrayList<>();
         for (CastDeclarationSpecifierContext declarationSpecifierContext : spec1list) {
             for (ParseTree child : declarationSpecifierContext.children) {
@@ -211,15 +214,16 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
             case "auto":
             case "register":
             case "_Thread_local":
-                throw new UnsupportedOperationException("Not yet implemented");
+                throw new UnsupportedFrontendElementException(
+                        "Not yet implemented (" + ctx.getText() + ")");
         }
-        throw new UnsupportedOperationException(
+        throw new UnsupportedFrontendElementException(
                 "Storage class specifier not expected: " + ctx.getText());
     }
 
     @Override
     public CSimpleType visitTypeSpecifierAtomic(CParser.TypeSpecifierAtomicContext ctx) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        throw new UnsupportedFrontendElementException("Not yet implemented");
     }
 
     @Override
@@ -228,8 +232,9 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     }
 
     @Override
-    public CSimpleType visitTypeSpecifierFunctionPointer(CParser.TypeSpecifierFunctionPointerContext ctx) {
-        throw new UnsupportedOperationException("Function pointers not yet implemented");
+    public CSimpleType visitTypeSpecifierFunctionPointer(
+            CParser.TypeSpecifierFunctionPointerContext ctx) {
+        throw new UnsupportedFrontendElementException("Function pointers not yet implemented");
     }
 
     @Override
@@ -240,24 +245,30 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
                 name = ctx.Identifier().getText();
             }
             Struct struct = CSimpleTypeFactory.Struct(name, parseContext, uniqueWarningLogger);
-            for (CParser.StructDeclarationContext structDeclarationContext : ctx.structDeclarationList()
-                    .structDeclaration()) {
-                CParser.SpecifierQualifierListContext specifierQualifierListContext = structDeclarationContext.specifierQualifierList();
+            for (CParser.StructDeclarationContext structDeclarationContext :
+                    ctx.structDeclarationList().structDeclaration()) {
+                CParser.SpecifierQualifierListContext specifierQualifierListContext =
+                        structDeclarationContext.specifierQualifierList();
                 CSimpleType cSimpleType = specifierQualifierListContext.accept(this);
                 if (structDeclarationContext.structDeclaratorList() == null) {
-                    struct.addField(cSimpleType.getAssociatedName(), cSimpleType);
+                    final var decl = new CDeclaration(cSimpleType);
+                    struct.addField(decl);
                 } else {
-                    for (CParser.StructDeclaratorContext structDeclaratorContext : structDeclarationContext.structDeclaratorList()
-                            .structDeclarator()) {
-                        CDeclaration declaration = structDeclaratorContext.accept(
-                                declarationVisitor);
-                        struct.addField(declaration.getName(), cSimpleType);
+                    for (CParser.StructDeclaratorContext structDeclaratorContext :
+                            structDeclarationContext.structDeclaratorList().structDeclarator()) {
+                        CDeclaration declaration =
+                                structDeclaratorContext.accept(declarationVisitor);
+                        if (declaration.getType() == null) {
+                            declaration.setType(cSimpleType);
+                        }
+                        struct.addField(declaration);
                     }
                 }
             }
             return struct;
         } else {
-            uniqueWarningLogger.write(Level.INFO, "WARNING: CompoundDefinitions are not yet implemented!\n");
+            uniqueWarningLogger.write(
+                    Level.INFO, "WARNING: CompoundDefinitions are not yet implemented!\n");
             return NamedType("int", parseContext, uniqueWarningLogger);
         }
     }
@@ -268,7 +279,8 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
         if (ctx.structOrUnion().Struct() != null) {
             return Struct.getByName(text);
         } else {
-            return NamedType(ctx.structOrUnion().getText() + " " + text, parseContext, uniqueWarningLogger);
+            return NamedType(
+                    ctx.structOrUnion().getText() + " " + text, parseContext, uniqueWarningLogger);
         }
     }
 
@@ -283,9 +295,12 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
         Map<String, Optional<Expr<?>>> fields = new LinkedHashMap<>();
         for (CParser.EnumeratorContext enumeratorContext : ctx.enumeratorList().enumerator()) {
             String value = enumeratorContext.enumerationConstant().getText();
-            CParser.ConstantExpressionContext expressionContext = enumeratorContext.constantExpression();
+            CParser.ConstantExpressionContext expressionContext =
+                    enumeratorContext.constantExpression();
             Expr<?> expr =
-                    expressionContext == null ? null : null;//expressionContext.accept(null ); // TODO
+                    expressionContext == null
+                            ? null
+                            : null; // expressionContext.accept(null ); // TODO
             fields.put(value, Optional.ofNullable(expr));
         }
         return Enum(id, fields);
@@ -298,7 +313,7 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
 
     @Override
     public CSimpleType visitTypeSpecifierExtension(CParser.TypeSpecifierExtensionContext ctx) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        throw new UnsupportedFrontendElementException("Not yet implemented typeSpecifierExtension");
     }
 
     @Override
@@ -361,7 +376,7 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
 
     @Override
     public CSimpleType visitTypeSpecifierTypeof(CParser.TypeSpecifierTypeofContext ctx) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        throw new UnsupportedFrontendElementException("Not yet implemented typeSpecifierTypeof");
     }
 
     @Override
@@ -370,13 +385,13 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
             case "const":
                 return null;
             case "restrict":
-                throw new UnsupportedOperationException("Not yet implemented!");
+                throw new UnsupportedFrontendElementException("Not yet implemented 'restrict'!");
             case "volatile":
                 return Volatile();
             case "_Atomic":
                 return Atomic();
         }
-        throw new UnsupportedOperationException(
+        throw new UnsupportedFrontendElementException(
                 "Type qualifier " + ctx.getText() + " not expected!");
     }
 
@@ -389,5 +404,4 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     public CSimpleType visitAlignmentSpecifier(CParser.AlignmentSpecifierContext ctx) {
         return null;
     }
-
 }

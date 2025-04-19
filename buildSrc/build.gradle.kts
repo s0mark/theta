@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ apply(from = rootDir.resolve("../gradle/shared-with-buildSrc/mirrors.gradle.kts"
 
 val kotlinVersion: String by project
 val shadowVersion: String by project
+val spotlessVersion: String by project
 
 // https://github.com/gradle/kotlin-dsl/issues/430#issuecomment-414768887
 fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
@@ -37,7 +38,9 @@ fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$
 dependencies {
     compileOnly(gradleKotlinDsl())
     implementation(kotlin("gradle-plugin", kotlinVersion))
+    implementation(kotlin("serialization", kotlinVersion))
     implementation(gradlePlugin("com.github.johnrengelman.shadow", shadowVersion))
+    implementation(gradlePlugin("com.diffplug.spotless", spotlessVersion))
 }
 
 // Force the embeddable Kotlin compiler version to be the selected kotlinVersion.

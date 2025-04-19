@@ -1,5 +1,5 @@
 /*
- *  Copyright 2024 Budapest University of Technology and Economics
+ *  Copyright 2025 Budapest University of Technology and Economics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,122 +15,156 @@
  */
 package hu.bme.mit.theta.analysis.algorithm.mdd;
 
-import hu.bme.mit.delta.collections.impl.RecursiveIntObjMapViews;
-import hu.bme.mit.delta.java.mdd.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Eq;
+import static hu.bme.mit.theta.core.type.booltype.SmartBoolExprs.And;
+import static hu.bme.mit.theta.core.type.booltype.SmartBoolExprs.Not;
+
+import com.google.common.collect.Lists;
+import hu.bme.mit.delta.java.mdd.JavaMddFactory;
+import hu.bme.mit.delta.java.mdd.MddGraph;
+import hu.bme.mit.delta.java.mdd.MddHandle;
+import hu.bme.mit.delta.java.mdd.MddVariableOrder;
 import hu.bme.mit.delta.mdd.MddInterpreter;
 import hu.bme.mit.delta.mdd.MddVariableDescriptor;
-import hu.bme.mit.theta.analysis.algorithm.SafetyResult;
 import hu.bme.mit.theta.analysis.algorithm.SafetyChecker;
-import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.BfsProvider;
-import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.GeneralizedSaturationProvider;
+import hu.bme.mit.theta.analysis.algorithm.SafetyResult;
+import hu.bme.mit.theta.analysis.algorithm.bounded.MonolithicExpr;
 import hu.bme.mit.theta.analysis.algorithm.mdd.ansd.AbstractNextStateDescriptor;
-import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.SimpleSaturationProvider;
-import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.StateSpaceEnumerationProvider;
-import hu.bme.mit.theta.common.logging.Logger.Level;
-import hu.bme.mit.theta.solver.SolverPool;
-import hu.bme.mit.theta.analysis.algorithm.mdd.expressionnode.ExprLatticeDefinition;
-import hu.bme.mit.theta.analysis.algorithm.mdd.expressionnode.MddExpressionTemplate;
 import hu.bme.mit.theta.analysis.algorithm.mdd.ansd.impl.MddNodeInitializer;
 import hu.bme.mit.theta.analysis.algorithm.mdd.ansd.impl.MddNodeNextStateDescriptor;
+import hu.bme.mit.theta.analysis.algorithm.mdd.expressionnode.ExprLatticeDefinition;
+import hu.bme.mit.theta.analysis.algorithm.mdd.expressionnode.MddExpressionTemplate;
+import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.BfsProvider;
+import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.GeneralizedSaturationProvider;
+import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.SimpleSaturationProvider;
+import hu.bme.mit.theta.analysis.algorithm.mdd.fixedpoint.StateSpaceEnumerationProvider;
 import hu.bme.mit.theta.analysis.expr.ExprAction;
-import hu.bme.mit.theta.analysis.utils.MddNodeVisualizer;
+import hu.bme.mit.theta.analysis.unit.UnitPrec;
+import hu.bme.mit.theta.common.container.Containers;
 import hu.bme.mit.theta.common.logging.Logger;
-import hu.bme.mit.theta.common.visualization.Graph;
-import hu.bme.mit.theta.common.visualization.writer.GraphvizWriter;
+import hu.bme.mit.theta.common.logging.Logger.Level;
 import hu.bme.mit.theta.core.decl.Decl;
 import hu.bme.mit.theta.core.decl.VarDecl;
 import hu.bme.mit.theta.core.type.Expr;
 import hu.bme.mit.theta.core.type.booltype.BoolType;
-import hu.bme.mit.theta.core.utils.ExprUtils;
 import hu.bme.mit.theta.core.utils.PathUtils;
-import hu.bme.mit.theta.core.utils.indexings.VarIndexing;
 import hu.bme.mit.theta.core.utils.indexings.VarIndexingFactory;
-import hu.bme.mit.theta.solver.SolverFactory;
-
-import java.io.FileNotFoundException;
+import hu.bme.mit.theta.solver.SolverPool;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import static hu.bme.mit.theta.core.type.booltype.SmartBoolExprs.Not;
+public class MddChecker<A extends ExprAction> implements SafetyChecker<MddProof, MddCex, UnitPrec> {
 
-public class MddChecker<A extends ExprAction> implements SafetyChecker<MddWitness, MddCex, Void> {
-
-    private final Expr<BoolType> initRel;
-    private final VarIndexing initIndexing;
-    private final A transRel;
-    private final Expr<BoolType> safetyProperty;
+    private final MonolithicExpr monolithicExpr;
+    private final List<VarDecl<?>> variableOrdering;
     private final SolverPool solverPool;
     private final Logger logger;
     private IterationStrategy iterationStrategy = IterationStrategy.GSAT;
 
     public enum IterationStrategy {
-        BFS, SAT, GSAT
+        BFS,
+        SAT,
+        GSAT
     }
 
-    private MddChecker(Expr<BoolType> initRel,
-                       VarIndexing initIndexing,
-                       A transRel,
-                       Expr<BoolType> safetyProperty,
-                       SolverPool solverPool,
-                       Logger logger,
-                       IterationStrategy iterationStrategy) {
-        this.initRel = initRel;
-        this.initIndexing = initIndexing;
-        this.transRel = transRel;
-        this.safetyProperty = safetyProperty;
+    private MddChecker(
+            MonolithicExpr monolithicExpr,
+            List<VarDecl<?>> variableOrdering,
+            SolverPool solverPool,
+            Logger logger,
+            IterationStrategy iterationStrategy) {
+        this.monolithicExpr = monolithicExpr;
+        this.variableOrdering = variableOrdering;
         this.solverPool = solverPool;
         this.logger = logger;
         this.iterationStrategy = iterationStrategy;
     }
 
-    public static <A extends ExprAction> MddChecker<A> create(Expr<BoolType> initRel,
-                                                              VarIndexing initIndexing,
-                                                              A transRel,
-                                                              Expr<BoolType> safetyProperty,
-                                                              SolverPool solverPool,
-                                                              Logger logger) {
-        return new MddChecker<A>(initRel, initIndexing, transRel, safetyProperty, solverPool, logger, IterationStrategy.GSAT);
+    public static <A extends ExprAction> MddChecker<A> create(
+            MonolithicExpr monolithicExpr,
+            List<VarDecl<?>> variableOrdering,
+            SolverPool solverPool,
+            Logger logger) {
+        return new MddChecker<A>(
+                monolithicExpr, variableOrdering, solverPool, logger, IterationStrategy.GSAT);
     }
 
-    public static <A extends ExprAction> MddChecker<A> create(Expr<BoolType> initRel,
-                                                              VarIndexing initIndexing,
-                                                              A transRel,
-                                                              Expr<BoolType> safetyProperty,
-                                                              SolverPool solverPool,
-                                                              Logger logger,
-                                                              IterationStrategy iterationStrategy) {
-        return new MddChecker<A>(initRel, initIndexing, transRel, safetyProperty, solverPool, logger, iterationStrategy);
+    public static <A extends ExprAction> MddChecker<A> create(
+            MonolithicExpr monolithicExpr,
+            List<VarDecl<?>> variableOrdering,
+            SolverPool solverPool,
+            Logger logger,
+            IterationStrategy iterationStrategy) {
+        return new MddChecker<A>(
+                monolithicExpr, variableOrdering, solverPool, logger, iterationStrategy);
     }
 
     @Override
-    public SafetyResult<MddWitness, MddCex> check(Void input) {
+    public SafetyResult<MddProof, MddCex> check(UnitPrec prec) {
 
-        final MddGraph<Expr> mddGraph = JavaMddFactory.getDefault().createMddGraph(ExprLatticeDefinition.forExpr());
+        final MddGraph<Expr> mddGraph =
+                JavaMddFactory.getDefault().createMddGraph(ExprLatticeDefinition.forExpr());
 
-        final MddVariableOrder stateOrder = JavaMddFactory.getDefault().createMddVariableOrder(mddGraph);
-        final MddVariableOrder transOrder = JavaMddFactory.getDefault().createMddVariableOrder(mddGraph);
+        final MddVariableOrder stateOrder =
+                JavaMddFactory.getDefault().createMddVariableOrder(mddGraph);
+        final MddVariableOrder transOrder =
+                JavaMddFactory.getDefault().createMddVariableOrder(mddGraph);
 
-        final Set<VarDecl<?>> vars = ExprUtils.getVars(List.of(initRel, transRel.toExpr(), safetyProperty));
-        for (var v : vars) {
-            final var domainSize = v.getType() instanceof BoolType ? 2 : 0;
+        variableOrdering.forEach(
+                v ->
+                        checkArgument(
+                                monolithicExpr.getVars().contains(v),
+                                "Variable ordering contains variable not present in vars List"));
 
-            stateOrder.createOnTop(MddVariableDescriptor.create(v.getConstDecl(initIndexing.get(v)), domainSize));
+        checkArgument(
+                variableOrdering.size() == Containers.createSet(variableOrdering).size(),
+                "Variable ordering contains duplicates");
+        final var identityExprs = new ArrayList<Expr<BoolType>>();
+        for (var v : Lists.reverse(variableOrdering)) {
+            var domainSize = Math.max(v.getType().getDomainSize().getFiniteSize().intValue(), 0);
 
-            transOrder.createOnTop(MddVariableDescriptor.create(v.getConstDecl(transRel.nextIndexing().get(v)), domainSize));
+            //     if (domainSize > 100) {
+            domainSize = 0;
+            //     }
+
+            stateOrder.createOnTop(MddVariableDescriptor.create(v.getConstDecl(0), domainSize));
+
+            final var index = monolithicExpr.getTransOffsetIndex().get(v);
+            if (index > 0) {
+                transOrder.createOnTop(
+                        MddVariableDescriptor.create(
+                                v.getConstDecl(monolithicExpr.getTransOffsetIndex().get(v)),
+                                domainSize));
+            } else {
+                transOrder.createOnTop(MddVariableDescriptor.create(v.getConstDecl(1), domainSize));
+                identityExprs.add(Eq(v.getConstDecl(0).getRef(), v.getConstDecl(1).getRef()));
+            }
+
             transOrder.createOnTop(MddVariableDescriptor.create(v.getConstDecl(0), domainSize));
         }
 
         final var stateSig = stateOrder.getDefaultSetSignature();
         final var transSig = transOrder.getDefaultSetSignature();
 
-        final Expr<BoolType> initExpr = PathUtils.unfold(initRel, initIndexing);
-        final MddHandle initNode = stateSig.getTopVariableHandle().checkInNode(MddExpressionTemplate.of(initExpr, o -> (Decl) o, solverPool));
+        final Expr<BoolType> initExpr = PathUtils.unfold(monolithicExpr.getInitExpr(), 0);
+        final MddHandle initNode =
+                stateSig.getTopVariableHandle()
+                        .checkInNode(MddExpressionTemplate.of(initExpr, o -> (Decl) o, solverPool));
 
-        logger.write(Level.INFO, "Created initial node");
+        logger.write(Level.INFO, "Created initial node\n");
 
-        final Expr<BoolType> transExpr = PathUtils.unfold(transRel.toExpr(), VarIndexingFactory.indexing(0));
-        final MddHandle transitionNode = transSig.getTopVariableHandle().checkInNode(MddExpressionTemplate.of(transExpr, o -> (Decl) o, solverPool));
-        final AbstractNextStateDescriptor nextStates = MddNodeNextStateDescriptor.of(transitionNode);
+        final Expr<BoolType> transExpr =
+                And(
+                        PathUtils.unfold(
+                                monolithicExpr.getTransExpr(), VarIndexingFactory.indexing(0)),
+                        And(identityExprs));
+        final MddHandle transitionNode =
+                transSig.getTopVariableHandle()
+                        .checkInNode(
+                                MddExpressionTemplate.of(transExpr, o -> (Decl) o, solverPool));
+        final AbstractNextStateDescriptor nextStates =
+                MddNodeNextStateDescriptor.of(transitionNode);
 
         logger.write(Level.INFO, "Created next-state node, starting fixed point calculation");
 
@@ -147,12 +181,21 @@ public class MddChecker<A extends ExprAction> implements SafetyChecker<MddWitnes
             }
             default -> throw new IllegalStateException("Unexpected value: " + iterationStrategy);
         }
-        final MddHandle stateSpace = stateSpaceProvider.compute(MddNodeInitializer.of(initNode), nextStates, stateSig.getTopVariableHandle());
+        final MddHandle stateSpace =
+                stateSpaceProvider.compute(
+                        MddNodeInitializer.of(initNode),
+                        nextStates,
+                        stateSig.getTopVariableHandle());
 
         logger.write(Level.INFO, "Enumerated state-space");
 
-        final Expr<BoolType> negatedPropExpr = PathUtils.unfold(Not(safetyProperty), initIndexing);
-        final MddHandle propNode = stateSig.getTopVariableHandle().checkInNode(MddExpressionTemplate.of(negatedPropExpr, o -> (Decl) o, solverPool));
+        final Expr<BoolType> negatedPropExpr =
+                PathUtils.unfold(Not(monolithicExpr.getPropExpr()), 0);
+        final MddHandle propNode =
+                stateSig.getTopVariableHandle()
+                        .checkInNode(
+                                MddExpressionTemplate.of(
+                                        negatedPropExpr, o -> (Decl) o, solverPool));
 
         final MddHandle propViolating = (MddHandle) stateSpace.intersection(propNode);
 
@@ -164,15 +207,25 @@ public class MddChecker<A extends ExprAction> implements SafetyChecker<MddWitnes
         final Long stateSpaceSize = MddInterpreter.calculateNonzeroCount(stateSpace);
         logger.write(Level.DETAIL, "State space size: " + stateSpaceSize);
 
-        final MddAnalysisStatistics statistics = new MddAnalysisStatistics(violatingSize, stateSpaceSize, stateSpaceProvider.getHitCount(), stateSpaceProvider.getQueryCount(), stateSpaceProvider.getCacheSize());
+        final MddAnalysisStatistics statistics =
+                new MddAnalysisStatistics(
+                        violatingSize,
+                        stateSpaceSize,
+                        stateSpaceProvider.getHitCount(),
+                        stateSpaceProvider.getQueryCount(),
+                        stateSpaceProvider.getCacheSize());
 
-        final SafetyResult<MddWitness, MddCex> result;
+        logger.write(Level.MAINSTEP, "%s\n", statistics);
+
+        final SafetyResult<MddProof, MddCex> result;
         if (violatingSize != 0) {
-            result = SafetyResult.unsafe(MddCex.of(propViolating), MddWitness.of(stateSpace), statistics);
+            result =
+                    SafetyResult.unsafe(
+                            MddCex.of(propViolating), MddProof.of(stateSpace), statistics);
         } else {
-            result = SafetyResult.safe(MddWitness.of(stateSpace), statistics);
+            result = SafetyResult.safe(MddProof.of(stateSpace), statistics);
         }
-        logger.write(Level.RESULT, "%s%n", result);
+        logger.write(Level.RESULT, "%s\n", result);
         return result;
     }
 }

@@ -37,6 +37,7 @@ import hu.bme.mit.theta.analysis.ptr.ItpRefToPtrPrec
 import hu.bme.mit.theta.analysis.ptr.PtrPrec
 import hu.bme.mit.theta.analysis.ptr.PtrState
 import hu.bme.mit.theta.analysis.ptr.getPtrPartialOrd
+import hu.bme.mit.theta.analysis.utils.StopContractGeneration
 import hu.bme.mit.theta.analysis.waitlist.Waitlist
 import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.core.decl.VarDecl
@@ -150,7 +151,16 @@ enum class Domain(
         ItpRefToPtrPrec(ItpRefToExplPrec())
       )
     },
-    initPrec = { x, ip -> ip.explPrec(x) },
+    initPrec = { x, ip ->
+      val vars = x.collectAssumes().flatMap(ExprUtils::getVars)
+      StopContractGeneration.criterion = { prec ->
+        val precSize = prec.usedVars.size
+        val stop = precSize > 5 * vars.size || StopContractGeneration.precisionStuck(precSize)
+        if (stop) println("Precision limit reached: ${prec.usedVars.size}")
+        stop
+      }
+      ip.explPrec(x)
+    },
     partialOrd = { PartialOrd<ExplState> { s1, s2 -> s1.isLeq(s2) }.getPtrPartialOrd() },
     nodePruner = AtomicNodePruner<XcfaState<PtrState<ExplState>>, XcfaAction>(),
     stateType = TypeToken.get(ExplState::class.java).type,
@@ -204,7 +214,30 @@ enum class Domain(
         ItpRefToPtrPrec(ItpRefToPredPrec(a))
       )
     },
-    initPrec = { x, ip -> ip.predPrec(x) },
+    initPrec = { x, ip ->
+      val assumeCount = x.collectAssumes().count()
+      StopContractGeneration.criterion = { prec ->
+        if (prec is XcfaPrec<*>) {
+          val ptrPrec = prec.p
+          if (ptrPrec is PtrPrec<*>) {
+            val p = ptrPrec.innerPrec
+            if (p is PredPrec) {
+              val precSize = p.preds.size
+              val stop = precSize > 5 * assumeCount || StopContractGeneration.precisionStuck(precSize)
+              if (stop) println("Precision limit reached: $precSize")
+              stop
+            } else {
+              true
+            }
+          } else {
+            true
+          }
+        } else {
+          true
+        }
+      }
+      ip.predPrec(x)
+    },
     partialOrd = { solver -> PredOrd.create(solver).getPtrPartialOrd() },
     nodePruner = AtomicNodePruner<XcfaState<PtrState<PredState>>, XcfaAction>(),
     stateType = TypeToken.get(PredState::class.java).type,

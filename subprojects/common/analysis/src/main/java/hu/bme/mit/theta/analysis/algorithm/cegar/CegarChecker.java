@@ -25,6 +25,7 @@ import hu.bme.mit.theta.analysis.algorithm.SafetyChecker;
 import hu.bme.mit.theta.analysis.algorithm.SafetyResult;
 import hu.bme.mit.theta.analysis.runtimemonitor.MonitorCheckpoint;
 import hu.bme.mit.theta.analysis.utils.ProofVisualizer;
+import hu.bme.mit.theta.analysis.utils.StopContractGeneration;
 import hu.bme.mit.theta.common.Utils;
 import hu.bme.mit.theta.common.logging.Logger;
 import hu.bme.mit.theta.common.logging.Logger.Level;
@@ -134,7 +135,7 @@ public final class CegarChecker<P extends Prec, Pr extends Proof, C extends Cex>
                 }
             }
 
-        } while (!abstractorResult.isSafe() && !refinerResult.isUnsafe());
+        } while (!abstractorResult.isSafe() && !refinerResult.isUnsafe() && !StopContractGeneration.INSTANCE.shouldStop(prec));
 
         stopwatch.stop();
         SafetyResult<Pr, C> cegarResult = null;
@@ -147,7 +148,7 @@ public final class CegarChecker<P extends Prec, Pr extends Proof, C extends Cex>
 
         assert abstractorResult.isSafe() || refinerResult.isUnsafe();
 
-        if (abstractorResult.isSafe()) {
+        if (abstractorResult.isSafe() || StopContractGeneration.INSTANCE.shouldStop(prec)) {
             cegarResult = SafetyResult.safe(proof, stats);
         } else if (refinerResult.isUnsafe()) {
             cegarResult = SafetyResult.unsafe(refinerResult.asUnsafe().getCex(), proof, stats);

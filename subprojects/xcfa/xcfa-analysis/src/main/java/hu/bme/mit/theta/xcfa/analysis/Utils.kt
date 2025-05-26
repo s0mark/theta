@@ -57,7 +57,7 @@ private fun <T : Type> Expr<T>.changeVars(varLut: Map<out Decl<*>, VarDecl<*>>, 
 fun <S : ExprState> XcfaState<S>.withGeneralizedVars(relevantVars: Collection<Decl<*>>? = null): S {
     val varLookup = processes.mapNotNull { (_, process) -> process.varLookup.peek()?.reverseMapping() }
         .reduceOrNull(Map<VarDecl<*>, VarDecl<*>>::plus) ?: mapOf()
-    val globalVars = this.xcfa?.vars?.map(XcfaGlobalVar::wrappedVar) ?: listOf()
+    val globalVars = this.xcfa?.globalVars?.map(XcfaGlobalVar::wrappedVar) ?: listOf()
     val varsToInclude = relevantVars ?: (varLookup.keys + varLookup.values + globalVars)
     return if (sGlobal.isBottom) sGlobal
     else sGlobal.getState(varLookup, varsToInclude)

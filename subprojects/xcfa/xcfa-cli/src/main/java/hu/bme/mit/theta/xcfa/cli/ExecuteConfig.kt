@@ -501,14 +501,14 @@ private fun postVerificationLogging(
     }
   }
     if (safetyResult.isSafe) {
-        safetyResult.witness.let { witness ->
-            if (witness is ARG<out State, out Action>) {
+        safetyResult.proof.let { proof ->
+            if (proof is ARG<out State, out Action>) {
                 val resultFolder = config.outputConfig.resultFolder
                 resultFolder.mkdirs()
                 val input = config.inputConfig.input ?: throw FileNotFoundException("Input file doesn't exist.")
-                val acslFile = File(resultFolder, "${input.nameWithoutExtension}_acsl.c")
+                val acslFile = File(resultFolder, "acsl.c") // File(resultFolder, "${input.nameWithoutExtension}_acsl.c")
                 exitOnError(config.debugConfig.stacktrace, config.debugConfig.debug) {
-                    writeAcsl(witness, input, acslFile)
+                    writeAcsl(proof, input, acslFile)
                 }
             }
         }

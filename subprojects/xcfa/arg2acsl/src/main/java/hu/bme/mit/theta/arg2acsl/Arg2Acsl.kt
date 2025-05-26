@@ -67,7 +67,7 @@ fun<S : ExprState, A : Action> ARG<XcfaState<S>, A>.initialProcedureStates(): Ma
         { it.state.processes.values.first().locs.peek() },
         { node ->
             val varLookup = node.state.processes.values.firstOrNull()?.varLookup?.peek()?.reverseMapping() ?: mapOf()
-            val globalVars = node.state.xcfa?.vars?.map(XcfaGlobalVar::wrappedVar) ?: listOf()
+            val globalVars = node.state.xcfa?.globalVars?.map(XcfaGlobalVar::wrappedVar) ?: listOf()
             val relevantVars = (varLookup.keys + varLookup.values + globalVars).filter { !it.name.endsWith("_ret") }
             node.state.withGeneralizedVars(relevantVars)
         }
@@ -78,7 +78,7 @@ fun<S : ExprState, A : Action> ARG<XcfaState<S>, A>.writeAcslContracts(input: Fi
     val lines = input.readLines().toMutableList()
 
     // remove global variable declarations
-    val globalVarDecls = this.initNodes.asSequence().first().state.xcfa?.vars?.associate { globalVar ->
+    val globalVarDecls = this.initNodes.asSequence().first().state.xcfa?.globalVars?.associate { globalVar ->
         globalVar.getCMetaData()!!.lineNumberStart!!.let {
             Pair(it, lines.removeAt(it - 1).apply { lines.add(it - 1, "") })
         }

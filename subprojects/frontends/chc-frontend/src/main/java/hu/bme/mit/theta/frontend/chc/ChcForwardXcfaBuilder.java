@@ -93,7 +93,7 @@ public class ChcForwardXcfaBuilder extends CHCBaseVisitor<Object> implements Chc
         if (ctx.chc_tail() != null) {
             from = getTailFrom(ctx.chc_tail());
             to = getHeadTo(ctx.chc_head());
-            Map<String, VarDecl<?>> vars = createVars(builder, ctx.var_decl());
+            Map<String, VarDecl<?>> vars = createVars(builder, ctx.var_decl(), true);
             labels.addAll(getIncomingAssignments(ctx.chc_tail(), vars));
             labels.addAll(getTailConditionLabels(ctx.chc_tail(), vars));
             labels.addAll(getTargetAssignments(ctx.chc_head(), vars));
@@ -115,7 +115,7 @@ public class ChcForwardXcfaBuilder extends CHCBaseVisitor<Object> implements Chc
     @Override
     public Object visitChc_query(CHCParser.Chc_queryContext ctx) {
         XcfaLocation from = getTailFrom(ctx.chc_tail());
-        Map<String, VarDecl<?>> vars = createVars(builder, ctx.var_decl());
+        Map<String, VarDecl<?>> vars = createVars(builder, ctx.var_decl(), true);
         List<XcfaLabel> labels = new ArrayList<>();
         labels.addAll(getIncomingAssignments(ctx.chc_tail(), vars));
         labels.addAll(getTailConditionLabels(ctx.chc_tail(), vars));
@@ -130,6 +130,9 @@ public class ChcForwardXcfaBuilder extends CHCBaseVisitor<Object> implements Chc
             CHCParser.Chc_tailContext tail, Map<String, VarDecl<?>> localVars) {
         List<XcfaLabel> labels = new ArrayList<>();
         UPred from = locations.get(getTailFrom(tail).getName());
+        if (tail.u_pred_atom().isEmpty()) {
+            localVars.values().forEach(var -> labels.add(new StmtLabel(HavocStmt.of(var))));
+        }
         tail.u_pred_atom()
                 .forEach(
                         u_pred -> {

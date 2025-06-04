@@ -420,6 +420,7 @@ private fun postVerificationLogging(
   logger: Logger,
   uniqueLogger: Logger,
 ) {
+  PrecReuse.writeTo(config.outputConfig.resultFolder)
   if (
     config.frontendConfig.inputType == InputType.CHC &&
       xcfa != null &&
@@ -448,7 +449,6 @@ private fun postVerificationLogging(
 
       val resultFolder = config.outputConfig.resultFolder
       resultFolder.mkdirs()
-      PrecReuse.writeTo(resultFolder)
 
       logger.write(
         Logger.Level.INFO,

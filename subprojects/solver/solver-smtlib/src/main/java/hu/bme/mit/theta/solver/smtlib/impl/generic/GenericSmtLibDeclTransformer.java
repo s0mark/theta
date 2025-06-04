@@ -110,7 +110,7 @@ public class GenericSmtLibDeclTransformer implements SmtLibDeclTransformer {
         }
     }
 
-    private String symbolNameFor(final Decl<?> decl) {
+    protected String symbolNameFor(final Decl<?> decl) {
         return String.format("%s_%d", decl.getName(), symbolCount++);
     }
 }

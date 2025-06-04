@@ -419,6 +419,7 @@ private fun postVerificationLogging(
   logger: Logger,
   uniqueLogger: Logger,
 ) {
+  PrecReuse.writeTo(config.outputConfig.resultFolder)
   if (config.outputConfig.enableOutput && mcm != null && parseContext != null) {
     try {
       // we only want to log the files if the current configuration is not --in-process or portfolio
@@ -428,7 +429,6 @@ private fun postVerificationLogging(
 
       val resultFolder = config.outputConfig.resultFolder
       resultFolder.mkdirs()
-      PrecReuse.writeTo(resultFolder)
 
       logger.write(
         Logger.Level.INFO,

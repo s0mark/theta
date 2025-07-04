@@ -279,7 +279,7 @@ class FrontendXcfaBuilder(
     }
     for (functionParam in funcDecl.functionParams) {
       Preconditions.checkState(
-        functionParam.actualType is CVoid || functionParam.varDecls.size > 0,
+        functionParam.actualType is CVoid || functionParam.varDecls.size > 0 || compound == null,
         "Function param should have an associated variable!",
       )
       for (varDecl in functionParam.varDecls) {
@@ -324,7 +324,7 @@ class FrontendXcfaBuilder(
     builder.createFinalLoc(getMetadata(function))
     val ret = builder.finalLoc.get()
     builder.addLoc(ret)
-    val end = compound.accept(this, ParamPack(builder, init, null, null, ret))
+    val end = compound?.accept(this, ParamPack(builder, init, null, null, ret)) ?: init
     val edge = XcfaEdge(end, ret, metadata = getMetadata(function))
     builder.addEdge(edge)
     return builder

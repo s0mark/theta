@@ -245,6 +245,9 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
                             functions.put(varDecl, declaration);
                         }
                     }
+                    CFunction cFunction = new CFunction(declaration, null, new ArrayList<>(flatVariables), parseContext, atomicVariables);
+                    recordMetadata(ctx, cFunction);
+                    return cFunction;
                 }
             }
         }

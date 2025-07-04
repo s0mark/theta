@@ -34,6 +34,7 @@ import hu.bme.mit.theta.frontend.transformation.model.statements.CStatement;
 import hu.bme.mit.theta.frontend.transformation.model.types.simple.CSimpleType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DeclarationVisitor extends CBaseVisitor<CDeclaration> {
     private final ParseContext parseContext;
@@ -79,6 +80,13 @@ public class DeclarationVisitor extends CBaseVisitor<CDeclaration> {
             CParser.DeclarationSpecifiersContext declSpecContext,
             CParser.InitDeclaratorListContext initDeclContext,
             boolean getInitExpr) {
+        if (initDeclContext != null) {
+            CDeclaration declaration = initDeclContext.initDeclarator(0).declarator().accept(this);
+            Optional<CSimpleType> declarationType = typedefVisitor.getSimpleType(declaration.getName());
+            if (declarationType.isPresent()) // id is a type, parse as function declaration
+                return List.of(getFunctionDeclaration(declSpecContext, declarationType.get()));
+        }
+
         List<CDeclaration> ret = new ArrayList<>();
         CSimpleType cSimpleType = declSpecContext.accept(typeVisitor);
         if (cSimpleType.getAssociatedName() != null) {
@@ -143,6 +151,20 @@ public class DeclarationVisitor extends CBaseVisitor<CDeclaration> {
             ret.get(0).incDerefCounter(cSimpleType.getPointerLevel());
         }
         return ret;
+    }
+
+    public CDeclaration getFunctionDeclaration(
+            CParser.DeclarationSpecifiersContext declSpecContext,
+            CSimpleType paramType) {
+        String name = declSpecContext.getChild(declSpecContext.getChildCount() - 1).getText();
+        CDeclaration funcDecl = new CDeclaration(name);
+
+        CSimpleType retType = declSpecContext.accept(typeVisitor);
+        funcDecl.setType(retType);
+        funcDecl.addFunctionParam(new CDeclaration(paramType));
+        funcDecl.setFunc(true);
+
+        return funcDecl;
     }
 
     @Override

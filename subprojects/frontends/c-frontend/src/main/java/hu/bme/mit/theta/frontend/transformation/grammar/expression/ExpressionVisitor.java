@@ -679,12 +679,14 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
                 parseContext.getMetadata().create(expr, "cType", smallestCommonType);
                 return expr;
             case "&":
-                final Expr<?> localAccept = accept;
-                checkState(
-                        localAccept instanceof RefExpr<?>
-                                && ((RefExpr<?>) localAccept).getDecl() instanceof VarDecl,
-                        "Referencing non-variable expressions is not allowed!");
-                return reference((RefExpr<?>) localAccept);
+                if (accept instanceof RefExpr<?> && ((RefExpr<?>) accept).getDecl() instanceof VarDecl) {
+                    return reference((RefExpr<?>) accept);
+                } else if (accept instanceof Dereference<?,?,?>) {
+                    var inner = ((Dereference<?, ?, ?>) accept).getArray();
+                    if (inner instanceof RefExpr<?> || inner instanceof Dereference<?,?,?>)
+                        return inner;
+                }
+                throw new IllegalStateException("Referencing non-variable expressions is not allowed!");
             case "*":
                 type = CComplexType.getType(accept, parseContext);
                 if (type instanceof CPointer) type = ((CPointer) type).getEmbeddedType();

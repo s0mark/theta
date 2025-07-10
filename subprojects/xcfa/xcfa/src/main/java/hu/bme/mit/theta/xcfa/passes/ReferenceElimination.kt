@@ -329,7 +329,7 @@ class ReferenceElimination(val parseContext: ParseContext) : ProcedurePass {
     varLut[this]?.first?.let {
       Dereference(
         cast(it.ref, it.type),
-        cast(CComplexType.getSignedInt(parseContext).nullValue, it.type),
+        cast(CComplexType.getType(it.ref, parseContext).nullValue, it.type),
         this.type,
       )
         as Expr<T>

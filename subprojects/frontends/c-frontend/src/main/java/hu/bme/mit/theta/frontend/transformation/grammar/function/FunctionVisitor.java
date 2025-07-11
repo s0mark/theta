@@ -511,8 +511,10 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
             createVars(declaration);
             if (declaration.getActualType()
                     instanceof CArray cArray) { // we transform it into a malloc
+                String mallocFuncName = "malloc";
+                parseContext.getMetadata().create(mallocFuncName, "cType", declaration.getActualType());
                 final var malloc =
-                        new CCall("malloc", List.of(cArray.getArrayDimension()), parseContext);
+                        new CCall(mallocFuncName, List.of(cArray.getArrayDimension()), parseContext);
                 preCompound.addCStatement(malloc);
                 final var free =
                         new CCall(

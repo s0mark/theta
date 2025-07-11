@@ -183,7 +183,8 @@ public class DeclarationVisitor extends CBaseVisitor<CDeclaration> {
 
     @Override
     public CDeclaration visitStructDeclaratorConstant(CParser.StructDeclaratorConstantContext ctx) {
-        throw new UnsupportedFrontendElementException("Not yet supported!");
+        // this is an overapproximation, the designated value is unused
+        return ctx.declarator().accept(this);
     }
 
     @Override

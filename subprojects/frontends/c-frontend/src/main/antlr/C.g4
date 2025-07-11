@@ -312,7 +312,7 @@ structDeclaratorList
 
 structDeclarator
     :   declarator                          #structDeclaratorSimple
-    |   declarator? ':' constantExpression  #structDeclaratorConstant
+    |   declarator ':' constantExpression   #structDeclaratorConstant
     ;
 
 enumSpecifier

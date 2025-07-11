@@ -23,17 +23,14 @@ import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.core.decl.Decls
 import hu.bme.mit.theta.core.decl.Decls.Var
 import hu.bme.mit.theta.core.decl.VarDecl
+import hu.bme.mit.theta.core.model.ImmutableValuation
 import hu.bme.mit.theta.core.stmt.AssignStmt
 import hu.bme.mit.theta.core.stmt.MemoryAssignStmt
 import hu.bme.mit.theta.core.stmt.Stmts
 import hu.bme.mit.theta.core.stmt.Stmts.Assume
 import hu.bme.mit.theta.core.type.Expr
 import hu.bme.mit.theta.core.type.Type
-import hu.bme.mit.theta.core.type.abstracttype.AbstractExprs
-import hu.bme.mit.theta.core.type.abstracttype.AddExpr
-import hu.bme.mit.theta.core.type.abstracttype.DivExpr
-import hu.bme.mit.theta.core.type.abstracttype.MulExpr
-import hu.bme.mit.theta.core.type.abstracttype.SubExpr
+import hu.bme.mit.theta.core.type.abstracttype.*
 import hu.bme.mit.theta.core.type.anytype.Dereference
 import hu.bme.mit.theta.core.type.anytype.Exprs.Dereference
 import hu.bme.mit.theta.core.type.anytype.RefExpr
@@ -167,7 +164,36 @@ class FrontendXcfaBuilder(
           initStmtList.add(builder.allocate(parseContext, globalDeclaration.get2().ref, bounds))
         }
       } else {
-        if (
+        if (globalDeclaration.get1().initExpr != null &&
+            globalDeclaration.get1().initExpr is CInitializerList) {
+          val initializerList = globalDeclaration.get1().initExpr as CInitializerList
+          val ptrType = CComplexType.getUnsignedLong(parseContext)
+          var currentValue = ptrType.nullValue
+          val unitValue = ptrType.unitValue
+          for (statement in initializerList.statements) {
+            val expr = statement.get2().expression
+            val deref: Dereference<*, *, *> =
+              Dereference.of(
+                cast(
+                  globalDeclaration.get1().varDecls[0].ref,
+                  currentValue.type
+                ),
+                cast(currentValue, currentValue.type),
+                expr.type
+              )
+            initStmtList.add(
+              StmtLabel(
+                Stmts.Assign(globalDeclaration.get1().varDecls[0] as VarDecl<Type>, cast(expr, expr.type))
+              )
+            )
+            initStmtList.add(
+              StmtLabel(
+                Stmts.MemoryAssign(deref as Dereference<*, *, Type>, cast(expr, expr.type))
+              )
+            )
+            currentValue = AbstractExprs.Add(currentValue, unitValue).eval(ImmutableValuation.empty())
+          }
+        } else if (
           globalDeclaration.get1().initExpr != null &&
             globalDeclaration.get1().initExpr.expression !is UnsupportedInitializer
         ) {

@@ -27,6 +27,8 @@ import hu.bme.mit.theta.common.logging.Logger.Level;
 import hu.bme.mit.theta.core.type.Expr;
 import hu.bme.mit.theta.frontend.ParseContext;
 import hu.bme.mit.theta.frontend.UnsupportedFrontendElementException;
+import hu.bme.mit.theta.frontend.transformation.grammar.expression.ExpressionVisitor;
+import hu.bme.mit.theta.frontend.transformation.grammar.function.FunctionVisitor;
 import hu.bme.mit.theta.frontend.transformation.grammar.preprocess.TypedefVisitor;
 import hu.bme.mit.theta.frontend.transformation.model.declaration.CDeclaration;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType;
@@ -40,7 +42,10 @@ import org.antlr.v4.runtime.tree.ParseTree;
 public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     private final DeclarationVisitor declarationVisitor;
     private final TypedefVisitor typedefVisitor;
+    private final FunctionVisitor functionVisitor;
     private final ParseContext parseContext;
+
+    private final Map<String, Expr<?>> enumValues;
     private final Logger uniqueWarningLogger;
 
     private static final List<String> standardTypes =
@@ -51,12 +56,19 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     public TypeVisitor(
             DeclarationVisitor declarationVisitor,
             TypedefVisitor typedefVisitor,
+            FunctionVisitor functionVisitor,
             ParseContext parseContext,
             Logger uniqueWarningLogger) {
         this.declarationVisitor = declarationVisitor;
         this.typedefVisitor = typedefVisitor;
+        this.functionVisitor = functionVisitor;
         this.parseContext = parseContext;
+        this.enumValues = new LinkedHashMap<>();
         this.uniqueWarningLogger = uniqueWarningLogger;
+    }
+
+    public Map<String, Expr<?>> getEnumValues() {
+        return enumValues;
     }
 
     @Override
@@ -292,17 +304,28 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     @Override
     public CSimpleType visitEnumDefinition(CParser.EnumDefinitionContext ctx) {
         String id = ctx.Identifier() == null ? null : ctx.Identifier().getText();
+        ExpressionVisitor expressionVisitor = functionVisitor.createExpressionVisitor();
         Map<String, Optional<Expr<?>>> fields = new LinkedHashMap<>();
+        int enumFieldCount = 0;
+        boolean undefinedEnumFound = false;
+        boolean definedEnumFound = false;
         for (CParser.EnumeratorContext enumeratorContext : ctx.enumeratorList().enumerator()) {
             String value = enumeratorContext.enumerationConstant().getText();
             CParser.ConstantExpressionContext expressionContext =
                     enumeratorContext.constantExpression();
-            Expr<?> expr =
-                    expressionContext == null
-                            ? null
-                            : null; // expressionContext.accept(null ); // TODO
+            Expr<?> expr;
+            if (expressionContext == null) {
+                expr = CComplexType.getUnsignedInt(parseContext).getValue(Integer.toString(enumFieldCount));
+                undefinedEnumFound = true;
+            } else {
+                expr = expressionContext.accept(expressionVisitor);
+                definedEnumFound = true;
+            }
             fields.put(value, Optional.ofNullable(expr));
+            enumValues.put(value, expr);
         }
+        if (undefinedEnumFound && definedEnumFound)
+            throw new UnsupportedFrontendElementException("Mixed definition of enum values is unsupported!");
         return Enum(id, fields);
     }
 

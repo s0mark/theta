@@ -333,19 +333,7 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
     public CStatement visitCaseStatement(CParser.CaseStatementContext ctx) {
         parseContext.getCStmtCounter().incrementBranches();
         CExpr cexpr =
-                new CExpr(
-                        ctx.constantExpression()
-                                .accept(
-                                        new ExpressionVisitor(
-                                                atomicVariables,
-                                                parseContext,
-                                                this,
-                                                variables,
-                                                functions,
-                                                typedefVisitor,
-                                                typeVisitor,
-                                                uniqueWarningLogger)),
-                        parseContext);
+                new CExpr(ctx.constantExpression().accept(createExpressionVisitor()), parseContext);
         CCase cCase = new CCase(cexpr, ctx.statement().accept(this), parseContext);
         recordMetadata(ctx, cCase);
         recordMetadata(ctx.constantExpression(), cexpr);
@@ -664,16 +652,7 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
     @Override
     public CStatement visitAssignmentExpressionAssignmentExpression(
             CParser.AssignmentExpressionAssignmentExpressionContext ctx) {
-        ExpressionVisitor expressionVisitor =
-                new ExpressionVisitor(
-                        atomicVariables,
-                        parseContext,
-                        this,
-                        variables,
-                        functions,
-                        typedefVisitor,
-                        typeVisitor,
-                        uniqueWarningLogger);
+        ExpressionVisitor expressionVisitor = createExpressionVisitor();
         CCompound compound = new CCompound(parseContext);
         CCompound preStatements = new CCompound(parseContext);
         CCompound postStatements = new CCompound(parseContext);
@@ -790,16 +769,7 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
         CCompound preStatements = new CCompound(parseContext);
         CCompound postStatements = new CCompound(parseContext);
 
-        ExpressionVisitor expressionVisitor =
-                new ExpressionVisitor(
-                        atomicVariables,
-                        parseContext,
-                        this,
-                        variables,
-                        functions,
-                        typedefVisitor,
-                        typeVisitor,
-                        uniqueWarningLogger);
+        ExpressionVisitor expressionVisitor = createExpressionVisitor();
 
         Expr<?> iteExpr;
         if (!ctx.expression().isEmpty()) {
@@ -873,6 +843,18 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
         expressionVisitor.getPostStatements().forEach(postStatements::addCStatement);
         recordMetadata(ctx, compound);
         return compound;
+    }
+
+    public ExpressionVisitor createExpressionVisitor() {
+        return new ExpressionVisitor(
+                atomicVariables,
+                parseContext,
+                this,
+                variables,
+                functions,
+                typedefVisitor,
+                typeVisitor,
+                uniqueWarningLogger);
     }
 
     @Override

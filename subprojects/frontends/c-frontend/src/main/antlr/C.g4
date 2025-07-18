@@ -29,10 +29,16 @@
 /** C 2011 grammar built from the C11 Spec */
 grammar C;
 
+@parser::header {
+import java.util.LinkedHashSet;
+}
+@parser::members {
+private final LinkedHashSet<String> typedefNames = new LinkedHashSet<>();
+}
 
 primaryExpression
     :   PRETTY_FUNC                                                         # gccPrettyFunc
-    |   Identifier                                                          # primaryExpressionId
+    |   {!typedefNames.contains(getCurrentToken().getText())}? Identifier   # primaryExpressionId
     |   Constant                                                            # primaryExpressionConstant
     |   StringLiteral+                                                      # primaryExpressionStrings
     |   '(' expression ')'                                                  # primaryExpressionBraceExpression
@@ -565,12 +571,17 @@ translationUnit
 
 externalDeclaration
     :   functionDefinition  #externalFunctionDefinition
+    |   typeDefinition      #externalTypeDefinition
     |   declaration         #globalDeclaration
     |   ';'                 #externalNop
     ;
 
 functionDefinition
     :   declarationSpecifiers declarator /*declarationList?*/ compoundStatement
+    ;
+
+typeDefinition
+    :   'typedef' declarationSpecifiers Identifier ';' {typedefNames.add($Identifier.text);}
     ;
 
 //declarationList

@@ -744,6 +744,10 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
 
     @Override
     public Expr<?> visitPrimaryExpressionId(CParser.PrimaryExpressionIdContext ctx) {
+        Expr<?> enumValue = typeVisitor.getEnumValues().get(ctx.Identifier().getText());
+        if (enumValue != null)
+            return enumValue;
+
         final var variable = getVar(ctx.Identifier().getText());
         if (atomicVars.contains(variable)) {
             preStatements.add(new CCall("__VERIFIER_atomic_begin", List.of(), parseContext));

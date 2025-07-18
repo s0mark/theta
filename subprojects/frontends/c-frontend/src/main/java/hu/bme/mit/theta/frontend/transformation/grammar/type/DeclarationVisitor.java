@@ -51,7 +51,7 @@ public class DeclarationVisitor extends CBaseVisitor<CDeclaration> {
         this.functionVisitor = functionVisitor;
         this.uniqueWarningLogger = uniqueWarningLogger;
         this.typedefVisitor = new TypedefVisitor(this);
-        this.typeVisitor = new TypeVisitor(this, typedefVisitor, parseContext, uniqueWarningLogger);
+        this.typeVisitor = new TypeVisitor(this, typedefVisitor, functionVisitor, parseContext, uniqueWarningLogger);
     }
 
     public TypedefVisitor getTypedefVisitor() {

@@ -94,6 +94,16 @@ public class TypedefVisitor extends CBaseVisitor<Set<CDeclaration>> {
     }
 
     @Override
+    public Set<CDeclaration> visitTypeDefinition(CParser.TypeDefinitionContext ctx) {
+        CSimpleType cSimpleType = ctx.declarationSpecifiers().accept(declarationVisitor.getTypeVisitor());
+        CDeclaration cDeclaration = new CDeclaration(ctx.Identifier.getText());
+        cDeclaration.setType(cSimpleType);
+        cDeclaration.incDerefCounter(cSimpleType.getPointerLevel());
+        this.declarations.add(cDeclaration);
+        return Set.of(cDeclaration);
+    }
+
+    @Override
     public Set<CDeclaration> visitGlobalDeclaration(CParser.GlobalDeclarationContext ctx) {
         Set<CDeclaration> ret = new LinkedHashSet<>();
         if (ctx.declaration()

@@ -477,6 +477,12 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
     }
 
     @Override
+    public CStatement visitAssemblyStatement(CParser.AssemblyStatementContext ctx) {
+        uniqueWarningLogger.writeln(Level.INFO, "WARNING: Assembly statements are not supported! Skipping");
+        return new CNullStatement(parseContext);
+    }
+
+    @Override
     public CStatement visitStatement(CParser.StatementContext ctx) {
         currentStatementContext.push(Tuple2.of(ctx, Optional.empty()));
         final var ret = ctx.children.get(0).accept(this);

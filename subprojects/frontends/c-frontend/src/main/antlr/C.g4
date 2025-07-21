@@ -488,7 +488,7 @@ statement
     |   selectionStatement
     |   iterationStatement
     |   jumpStatement ';'
-//    |   ('__asm' | '__asm__') ('volatile' | '__volatile__') '(' (logicalOrExpression (',' logicalOrExpression)*)? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';'
+    |   assemblyStatement
     ;
 
 labeledStatement
@@ -523,6 +523,10 @@ iterationStatement
     :   While '(' expression ')' statement                      # whileStatement
     |   Do statement While '(' expression ')' ';'               # doWhileStatement
     |   For '(' forCondition ')' statement                      # forStatement
+    ;
+
+assemblyStatement
+    :   ('__asm' | '__asm__') ('volatile' | '__volatile__')? '(' (logicalOrExpression (',' logicalOrExpression)*)? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';'
     ;
 
 //    |   'for' '(' expression? ';' expression?  ';' forUpdate? ')' statement

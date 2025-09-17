@@ -30,6 +30,7 @@ import hu.bme.mit.theta.analysis.expl.ExplState
 import hu.bme.mit.theta.analysis.ptr.PtrState
 import hu.bme.mit.theta.analysis.utils.ArgVisualizer
 import hu.bme.mit.theta.analysis.utils.PrecReuse
+import hu.bme.mit.theta.analysis.utils.PrecReuseMode
 import hu.bme.mit.theta.analysis.utils.TraceVisualizer
 import hu.bme.mit.theta.c2xcfa.CMetaData
 import hu.bme.mit.theta.cat.dsl.CatDslManager
@@ -52,6 +53,7 @@ import hu.bme.mit.theta.xcfa.analysis.por.XcfaSporLts
 import hu.bme.mit.theta.xcfa.cli.checkers.getChecker
 import hu.bme.mit.theta.xcfa.cli.params.*
 import hu.bme.mit.theta.xcfa.cli.utils.*
+import hu.bme.mit.theta.xcfa.cli.witnesstransformation.WitnessPrecSerializerConfig
 import hu.bme.mit.theta.xcfa.cli.witnesstransformation.XcfaTraceConcretizer
 import hu.bme.mit.theta.xcfa.getFlatLabels
 import hu.bme.mit.theta.xcfa.model.XCFA
@@ -122,7 +124,16 @@ private fun propagateInputOptions(config: XcfaConfig<*, *>, logger: Logger, uniq
     if (cegarConfig.initPrec == InitPrec.REUSE) {
       cegarConfig.precFile?.let { precFilename ->
         val precFile = File(precFilename)
-        if (precFile.exists()) PrecReuse.setInput(precFile)
+        if (precFile.exists()) {
+          PrecReuse.setInput(precFile)
+          PrecReuse.precReuseMode = when (precFile.extension) {
+            "yml" -> PrecReuseMode.WITNESS
+            "txt" -> PrecReuseMode.PROPRIETARY
+            else -> PrecReuseMode.PROPRIETARY.also {
+              logger.write(Logger.Level.INFO, "Precision reuse selected, but provided precision file format not recognised. Proceeding with empty initial precision.\n")
+            }
+          }
+        }
         else logger.write(Logger.Level.INFO, "Precision reuse selected, but provided precision file does not exist. Proceeding with empty initial precision.\n")
       } ?: logger.write(Logger.Level.INFO, "Precision reuse selected, but no precision file specified. Use the --prec-file to provide the precision. Proceeding with empty initial precision.\n")
     }
@@ -362,6 +373,14 @@ private fun preVerificationLogging(
         Logger.Level.INFO,
         "Writing pre-verification artifacts to directory ${resultFolder.absolutePath} with config ${config.outputConfig}\n",
       )
+
+      if ((config.backendConfig.specConfig as? CegarConfig)?.initPrec == InitPrec.REUSE) {
+        WitnessPrecSerializerConfig.inputFile = config.inputConfig.input
+        WitnessPrecSerializerConfig.parseContext = parseContext
+        WitnessPrecSerializerConfig.logger = logger
+        WitnessPrecSerializerConfig.architecture = (config.frontendConfig.specConfig as? CFrontendConfig)?.architecture
+        WitnessPrecSerializerConfig.property = config.inputConfig.property
+      }
 
       if (!config.outputConfig.chcOutputConfig.disable) {
         xcfa.procedures.forEach {

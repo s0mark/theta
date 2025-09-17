@@ -746,7 +746,7 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
 
     @Override
     public Expr<?> visitPrimaryExpressionId(CParser.PrimaryExpressionIdContext ctx) {
-        Expr<?> enumValue = typeVisitor.getEnumValues().get(ctx.Identifier().getText());
+        Expr<?> enumValue = typeVisitor == null ? null : typeVisitor.getEnumValues().get(ctx.Identifier().getText());
         if (enumValue != null)
             return enumValue;
 

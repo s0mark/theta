@@ -36,6 +36,7 @@ import hu.bme.mit.theta.analysis.pred.ExprSplitters.ExprSplitter
 import hu.bme.mit.theta.analysis.ptr.*
 import hu.bme.mit.theta.analysis.utils.ExplPrecSerializer
 import hu.bme.mit.theta.analysis.utils.PrecReuse
+import hu.bme.mit.theta.analysis.utils.PrecReuseMode
 import hu.bme.mit.theta.analysis.utils.PredPrecSerializer
 import hu.bme.mit.theta.analysis.waitlist.Waitlist
 import hu.bme.mit.theta.common.logging.Logger
@@ -48,6 +49,8 @@ import hu.bme.mit.theta.xcfa.analysis.*
 import hu.bme.mit.theta.xcfa.analysis.coi.ConeOfInfluence
 import hu.bme.mit.theta.xcfa.analysis.por.*
 import hu.bme.mit.theta.xcfa.cli.utils.XcfaDistToErrComparator
+import hu.bme.mit.theta.xcfa.cli.witnesstransformation.WitnessPredPrecSerializer
+import hu.bme.mit.theta.xcfa.cli.witnesstransformation.WitnessExplPrecSerializer
 import hu.bme.mit.theta.xcfa.collectAssumes
 import hu.bme.mit.theta.xcfa.collectVars
 import hu.bme.mit.theta.xcfa.model.XCFA
@@ -411,11 +414,19 @@ enum class InitPrec(
   ),
   REUSE(
     explPrec = { xcfa ->
-      PrecReuse.enable(XcfaPrecSerializer(PtrPrecSerializer(ExplPrecSerializer())))
+      val explPrecSerializer = when (PrecReuse.precReuseMode) {
+        PrecReuseMode.PROPRIETARY -> ExplPrecSerializer()
+        PrecReuseMode.WITNESS -> WitnessExplPrecSerializer()
+      }
+      PrecReuse.enable(XcfaPrecSerializer(PtrPrecSerializer(explPrecSerializer)))
       PrecReuse.load(xcfa.collectVars())
     },
     predPrec = { xcfa ->
-      PrecReuse.enable(XcfaPrecSerializer(PtrPrecSerializer(PredPrecSerializer())))
+      val predPrecSerializer = when (PrecReuse.precReuseMode) {
+        PrecReuseMode.PROPRIETARY -> PredPrecSerializer()
+        PrecReuseMode.WITNESS -> WitnessPredPrecSerializer()
+      }
+      PrecReuse.enable(XcfaPrecSerializer(PtrPrecSerializer(predPrecSerializer)))
       PrecReuse.load(xcfa.collectVars())
     },
 

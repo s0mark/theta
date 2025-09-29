@@ -21,8 +21,8 @@ import hu.bme.mit.theta.analysis.algorithm.SafetyChecker
 import hu.bme.mit.theta.analysis.algorithm.SafetyResult
 import hu.bme.mit.theta.analysis.expl.ExplState
 import hu.bme.mit.theta.analysis.ptr.PtrState
+import hu.bme.mit.theta.c2xcfa.getBoolExprFromC
 import hu.bme.mit.theta.c2xcfa.getCMetaData
-import hu.bme.mit.theta.c2xcfa.getExpressionFromC
 import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.core.decl.Decls.Param
 import hu.bme.mit.theta.core.stmt.NonDetStmt
@@ -78,7 +78,7 @@ fun getLassoValidationChecker(
   val constraint = recurrenceSet.segment!![0].waypoint.constraint!!
   val recurrenceSetExpr =
     if (constraint.format == Format.C_EXPRESSION) {
-      getExpressionFromC(
+      getBoolExprFromC(
         constraint.value,
         parseContext,
         false,

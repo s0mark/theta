@@ -319,8 +319,8 @@ data class Precision(
 )
 
 enum class PrecisionType {
-  @SerialName("predicate") PREDICATE,
-  @SerialName("relevant_memory_locations") EXPLICIT,
+  @SerialName("predicates") PREDICATE,
+  @SerialName("memory_locations") EXPLICIT,
 }
 
 @Serializable

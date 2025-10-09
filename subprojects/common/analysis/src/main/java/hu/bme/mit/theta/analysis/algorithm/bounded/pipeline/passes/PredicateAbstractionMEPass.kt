@@ -105,7 +105,7 @@ constructor(
     val literalToPred = HashMap<Decl<*>, Expr<BoolType>>()
 
     prec.preds.forEachIndexed { index, expr ->
-      val v = Decls.Var("v$index", BoolType.getInstance())
+      val v = Decls.Var("v$index", BoolType.getInstance(), true)
       activationLiterals.add(v)
       literalToPred[v] = expr
       lambdaList.add(IffExpr.of(v.ref, expr))

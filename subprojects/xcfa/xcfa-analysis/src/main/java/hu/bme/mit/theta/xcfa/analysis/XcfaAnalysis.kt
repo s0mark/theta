@@ -132,7 +132,7 @@ fun getCoreXcfaLts() =
                               .map { iVal ->
                                 val originalVar = iVal.value.first
                                 val tempVar =
-                                  Var("tmp${tempCnt++}_" + originalVar.name, originalVar.type)
+                                  Var("tmp${tempCnt++}_" + originalVar.name, originalVar.type, true)
                                 lookup[originalVar] = tempVar
                                 StmtLabel(
                                   Stmts.Assign(
@@ -159,7 +159,7 @@ fun getCoreXcfaLts() =
                               .mapNotNull { iVal ->
                                 val originalVar = iVal.value.first
                                 val tempVar =
-                                  Var("tmp${tempCnt++}_" + originalVar.name, originalVar.type)
+                                  Var("tmp${tempCnt++}_" + originalVar.name, originalVar.type, true)
                                 lookup[originalVar] = tempVar
                                 val trial =
                                   Try.attempt {

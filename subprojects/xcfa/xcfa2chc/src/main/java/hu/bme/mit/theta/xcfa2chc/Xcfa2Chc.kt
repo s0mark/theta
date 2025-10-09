@@ -54,12 +54,12 @@ fun XcfaProcedure.toCHC(
 ): Pair<List<VarDecl<*>>, List<Relation>> {
   val vars = edges.flatMap { it.label.collectVars() }.toSet().toMutableList()
 
-  val rankingFunction = Var("__ranking_func", Int())
+  val rankingFunction = Var("__ranking_func", Int(), true)
   val havocArrays =
     edges
       .flatMap { it.label.getFlatLabels() }
       .mapNotNull { ((it as? StmtLabel)?.stmt as? HavocStmt<*>)?.varDecl?.type }
-      .associateWith { Var("__nondet_array_${it}", ArrayType.of(Int(), it)) }
+      .associateWith { Var("__nondet_array_${it}", ArrayType.of(Int(), it), true) }
 
   if (termination) {
     vars.add(rankingFunction)

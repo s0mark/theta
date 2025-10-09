@@ -88,7 +88,7 @@ open class XcfaSporLts(protected val xcfa: XCFA) :
   private val String.fenceVar
     get() =
       fenceVars.getOrPut("") {
-        Decls.Var(if (this == "") "__THETA_atomic_mutex_" else this, Bool())
+        Decls.Var(if (this == "") "__THETA_atomic_mutex_" else this, Bool(), true)
       }
 
   init {

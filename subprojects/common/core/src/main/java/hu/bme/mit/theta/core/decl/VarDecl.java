@@ -34,14 +34,20 @@ public class VarDecl<DeclType extends Type> extends Decl<DeclType> {
     private static final String DECL_LABEL = "var";
 
     private final Map<Integer, IndexedConstDecl<DeclType>> indexToConst;
+    private final boolean internal;
 
     VarDecl(final String name, final DeclType type) {
+        this(name, type, false);
+    }
+
+    VarDecl(final String name, final DeclType type, final boolean internal) {
         super(name, type);
         indexToConst = Containers.createMap();
+        this.internal = internal;
     }
 
     public static <DeclType extends Type> VarDecl<DeclType> copyOf(VarDecl<DeclType> from) {
-        return new VarDecl<>(from.getName(), from.getType());
+        return new VarDecl<>(from.getName(), from.getType(), from.internal);
     }
 
     public IndexedConstDecl<DeclType> getConstDecl(final int index) {
@@ -52,6 +58,10 @@ public class VarDecl<DeclType extends Type> extends Decl<DeclType> {
             indexToConst.put(index, constDecl);
         }
         return constDecl;
+    }
+
+    public boolean isInternal() {
+        return internal;
     }
 
     @Override

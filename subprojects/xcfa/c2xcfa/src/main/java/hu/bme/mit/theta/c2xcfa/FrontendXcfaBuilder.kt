@@ -20,7 +20,6 @@ package hu.bme.mit.theta.c2xcfa
 import com.google.common.base.Preconditions
 import com.google.common.base.Preconditions.checkState
 import hu.bme.mit.theta.common.logging.Logger
-import hu.bme.mit.theta.core.decl.Decls
 import hu.bme.mit.theta.core.decl.Decls.Var
 import hu.bme.mit.theta.core.decl.VarDecl
 import hu.bme.mit.theta.core.stmt.AssignStmt
@@ -112,7 +111,7 @@ class FrontendXcfaBuilder(
       val ptrType = CPointer(null, null, parseContext)
       val ptrSize =
         XcfaGlobalVar(
-          Var("__theta_ptr_size", ArrayType.of(ptrType.smtType, fitsall.smtType)),
+          Var("__theta_ptr_size", ArrayType.of(ptrType.smtType, fitsall.smtType), true),
           ArrayLitExpr.of(
             listOf(),
             fitsall.nullValue as Expr<Type>,
@@ -266,12 +265,12 @@ class FrontendXcfaBuilder(
     //        builder.setRetType(if (funcDecl.actualType is CVoid) null else
     // funcDecl.actualType.smtType) TODO: we never need the ret type, do we?
     if (funcDecl.actualType !is CVoid) {
-      val toAdd: VarDecl<*> = Decls.Var(funcDecl.name + "_ret", funcDecl.actualType.smtType)
+      val toAdd: VarDecl<*> = Var(funcDecl.name + "_ret", funcDecl.actualType.smtType, true)
       parseContext.metadata.create(toAdd.ref, "cType", funcDecl.actualType)
       builder.addParam(toAdd, ParamDirection.OUT)
     } else {
       // TODO we assume later that there is always a ret var, but this should change
-      val toAdd: VarDecl<*> = Decls.Var(funcDecl.name + "_ret", funcDecl.actualType.smtType)
+      val toAdd: VarDecl<*> = Var(funcDecl.name + "_ret", funcDecl.actualType.smtType, true)
       val signedIntType = CSimpleTypeFactory.NamedType("int", parseContext, uniqueWarningLogger)
       signedIntType.setSigned(true)
       parseContext.metadata.create(toAdd.ref, "cType", signedIntType)

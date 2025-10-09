@@ -31,7 +31,7 @@ public class VarPoolUtil {
 
     public static VarDecl<IntType> requestInt() {
         if (intPool.isEmpty()) {
-            return Decls.Var("__temp_" + counter++, Int());
+            return Decls.Var("__temp_" + counter++, Int(), true);
         } else {
             return intPool.remove();
         }

@@ -439,7 +439,7 @@ data class XcfaProcessState(
           if (procPrefix != "") sj.add(procPrefix) else sj.add("_")
           sj.add(it.name)
           val name = sj.toString()
-          if (name != it.name) Var(sj.toString(), it.type) else it
+          if (name != it.name) Var(sj.toString(), it.type, true) else it
         }
         .filter { it.key != it.value }
   }

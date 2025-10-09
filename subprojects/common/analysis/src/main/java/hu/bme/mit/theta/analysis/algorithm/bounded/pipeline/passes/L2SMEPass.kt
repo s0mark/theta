@@ -55,10 +55,10 @@ class L2SMEPass<Pr : InvariantProof> : DirectionalMonolithicExprPass<Pr> {
     else Eq(e1, e2)
 
   override fun forward(monolithicExpr: MonolithicExpr): MonolithicExprPassResult<Pr> {
-    savedVar = Decls.Var("__saved_", BoolType.getInstance())
+    savedVar = Decls.Var("__saved_", BoolType.getInstance(), true)
     vars = monolithicExpr.vars
     action = monolithicExpr.action()
-    val saveMap = vars.associateWith { Decls.Var("__saved_" + it.name, it.type) }
+    val saveMap = vars.associateWith { Decls.Var("__saved_" + it.name, it.type, true) }
     val savedInitExpr = And(vars.map { reprEq(it.ref, saveMap[it]!!.ref) }.toList())
     val oneIndexing = VarIndexingFactory.indexing(1)
     val saveList =

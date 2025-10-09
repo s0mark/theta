@@ -168,7 +168,7 @@ public class ChcBackwardXcfaBuilder extends CHCBaseVisitor<Object> implements Ch
     private XcfaProcedureBuilder createProcedure(String procName, List<VarDecl<?>> paramList) {
         XcfaProcedureBuilder builder = new XcfaProcedureBuilder(procName, procedurePassManager);
         builder.setName(procName);
-        builder.addParam(Decls.Var(procName + "_ret", Bool()), ParamDirection.OUT);
+        builder.addParam(Decls.Var(procName + "_ret", Bool(), true), ParamDirection.OUT);
 
         //        builder.createInitLoc(new ChcMetadata(procName, paramList, true)); TODO: figure
         // out how to get model out of ARG.
@@ -201,7 +201,7 @@ public class ChcBackwardXcfaBuilder extends CHCBaseVisitor<Object> implements Ch
 
             XcfaProcedureBuilder calledProcedure = procedures.get(uPred.u_predicate().getText());
             VarDecl<BoolType> ret =
-                    Decls.Var(calledProcedure.getName() + "_ret_" + callCount++, Bool());
+                    Decls.Var(calledProcedure.getName() + "_ret_" + callCount++, Bool(), true);
             builder.addVar(ret);
             localVars.put(ret.getName(), ret);
             List<String> paramNames =

@@ -55,7 +55,7 @@ import java.util.stream.Stream;
 
 public abstract class XtaAction extends StmtAction {
 
-    private static final VarDecl<RatType> DELAY = Var("_delay", Rat());
+    private static final VarDecl<RatType> DELAY = Var("_delay", Rat(), true);
 
     private final Collection<VarDecl<RatType>> clockVars;
     private final List<Loc> sourceLocs;

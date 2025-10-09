@@ -40,7 +40,7 @@ class HavocToUninitVar : ProcedurePass {
           if (predicate((it.label as SequenceLabel).labels[0])) {
             val havocStmt = (it.label.labels[0] as StmtLabel).stmt as HavocStmt<*>
             val newVar =
-              Var(havocStmt.varDecl.name + "__havoc_" + counter++, havocStmt.varDecl.type)
+              Var(havocStmt.varDecl.name + "__havoc_" + counter++, havocStmt.varDecl.type, true)
             builder.addVar(newVar)
             val assignStmt = AssignStmtLabel(havocStmt.varDecl, newVar.ref)
             builder.addEdge(

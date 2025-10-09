@@ -77,7 +77,7 @@ class XcfaOcChecker(
 
   private var indexing = VarIndexingFactory.indexing(0)
   private val localVars = mutableMapOf<VarDecl<*>, MutableMap<Int, VarDecl<*>>>()
-  private val memoryDecl = Decls.Var("__oc_checker_memory_declaration__", Int())
+  private val memoryDecl = Decls.Var("__oc_checker_memory_declaration__", Int(), true)
 
   private val threads = mutableSetOf<Thread>()
   private val events = mutableMapOf<VarDecl<*>, MutableMap<Int, MutableList<E>>>()
@@ -539,7 +539,7 @@ class XcfaOcChecker(
       cast(
         localVars
           .getOrPut(this) { mutableMapOf() }
-          .getOrPut(pid) { Decls.Var("t$pid::$name", type) },
+          .getOrPut(pid) { Decls.Var("t$pid::$name", type, true) },
         type,
       )
     } else this

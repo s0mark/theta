@@ -57,7 +57,7 @@ class CfaToMonolithicAdapter :
   override fun modelToMonolithicExpr(model: CFA): MonolithicExpr {
     Preconditions.checkArgument(model.errorLoc.isPresent)
     locationIndexes = model.locs.mapIndexed { index, loc -> loc to index }.toMap()
-    locVar = Decls.Var("__loc__", Int())
+    locVar = Decls.Var("__loc__", Int(), true)
     indexedEdges =
       model.edges.associateBy { edge ->
         Pair(locationIndexes[edge.source]!!, locationIndexes[edge.target]!!)

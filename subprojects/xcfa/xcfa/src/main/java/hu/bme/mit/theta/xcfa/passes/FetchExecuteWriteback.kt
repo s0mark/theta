@@ -118,7 +118,7 @@ class FetchExecuteWriteback(val parseContext: ParseContext) : ProcedurePass {
 
   private fun getDerefLut(dereferences: List<Dereference<*, *, *>>, builder: XcfaProcedureBuilder) =
     dereferences.associateWith {
-      val tmpVar = Var("__THETA_heap_tmp_$cnt", it.type)
+      val tmpVar = Var("__THETA_heap_tmp_$cnt", it.type, true)
       builder.addVar(tmpVar)
       tmpVar
     }

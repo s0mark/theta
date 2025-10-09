@@ -24,8 +24,8 @@ public class IndexedVarDecl<DeclType extends Type> extends VarDecl<DeclType> {
     private final ConstDecl<DeclType> constDecl;
     private final RefExpr<DeclType> constRef;
 
-    IndexedVarDecl(final String name, final VarDecl<DeclType> original) {
-        super(name, original.getType());
+    IndexedVarDecl(final String name, final VarDecl<DeclType> original, boolean internal) {
+        super(name, original.getType(), internal);
         this.original = original;
         this.constDecl = Decls.Const(name, original.getType());
         this.constRef = RefExpr.of(constDecl);
@@ -33,7 +33,12 @@ public class IndexedVarDecl<DeclType extends Type> extends VarDecl<DeclType> {
 
     public static <DeclType extends Type> IndexedVarDecl<DeclType> of(
             final String name, final VarDecl<DeclType> original) {
-        return new IndexedVarDecl<>(name, original);
+        return of(name, original, false);
+    }
+
+    public static <DeclType extends Type> IndexedVarDecl<DeclType> of(
+            final String name, final VarDecl<DeclType> original, final boolean internal) {
+        return new IndexedVarDecl<>(name, original, internal);
     }
 
     public VarDecl<DeclType> getOriginal() {

@@ -80,7 +80,7 @@ final class ExprCnfTransformer {
         ////
 
         private Expr<BoolType> getRep(final Expr<?> expr) {
-            final VarDecl<BoolType> rep = Decls.Var(CNFPREFIX + (nextCnfVarId++), Bool());
+            final VarDecl<BoolType> rep = Decls.Var(CNFPREFIX + (nextCnfVarId++), Bool(), true);
             representatives.put(expr, rep);
             return rep.getRef();
         }

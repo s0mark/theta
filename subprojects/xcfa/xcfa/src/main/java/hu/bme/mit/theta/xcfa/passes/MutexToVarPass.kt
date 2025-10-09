@@ -120,5 +120,5 @@ class MutexToVarPass : ProcedurePass {
     get() = flag("_signal_flag")
 
   private fun String.flag(prefix: String) =
-    mutexVars.getOrPut(this) { Decls.Var("${prefix}_${ifEmpty { "atomic" }}", Bool()) }
+    mutexVars.getOrPut(this) { Decls.Var("${prefix}_${ifEmpty { "atomic" }}", Bool(), true) }
 }

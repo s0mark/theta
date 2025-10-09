@@ -47,7 +47,7 @@ class ReferenceElimination(val parseContext: ParseContext) : ProcedurePass {
     private val ptrVars: MutableMap<XcfaBuilder, VarDecl<*>> = mutableMapOf()
 
     private fun XcfaBuilder.ptrVar(parseContext: ParseContext) =
-      ptrVars.getOrPut(this) { Var("__sp", CPointer(null, null, parseContext).smtType) }
+      ptrVars.getOrPut(this) { Var("__sp", CPointer(null, null, parseContext).smtType, true) }
   }
 
   override fun run(builder: XcfaProcedureBuilder): XcfaProcedureBuilder {
@@ -64,7 +64,7 @@ class ReferenceElimination(val parseContext: ParseContext) : ProcedurePass {
           .filter { builder.parent.getVars().any { global -> global.wrappedVar == it } }
           .associateWith {
             val ptrType = CPointer(null, CComplexType.getType(it.ref, parseContext), parseContext)
-            val varDecl = Var(it.name + "*", ptrType.smtType)
+            val varDecl = Var(it.name + "*", ptrType.smtType, true)
             val lit = CComplexType.getType(varDecl.ref, parseContext).getValue("$cnt")
             builder.parent.addVar(XcfaGlobalVar(varDecl, lit))
             parseContext.metadata.create(varDecl.ref, "cType", ptrType)
@@ -112,7 +112,7 @@ class ReferenceElimination(val parseContext: ParseContext) : ProcedurePass {
           }
           val assign1 =
             AssignStmtLabel(ptrVar, Add(ptrVar.ref, ptrType.getValue("3")), ptrType.smtType)
-          val varDecl = Var(v.name + "*", ptrType.smtType)
+          val varDecl = Var(v.name + "*", ptrType.smtType, true)
           builder.addVar(varDecl)
           parseContext.metadata.create(varDecl.ref, "cType", ptrType)
           val assign2 = AssignStmtLabel(varDecl, ptrVar.ref)

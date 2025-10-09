@@ -47,7 +47,7 @@ class XstsToMonolithicAdapter :
     for (v in model.stateVars) {
       if (initStmtUnfoldResult.indexing.get(v) > 0) {
         for (i in 0..<initStmtUnfoldResult.indexing.get(v)) {
-          subBuilder.put(v.getConstDecl(i), Decls.Var(v.name + "__MONOLITHIC_TEMP" + i, v.type).ref)
+          subBuilder.put(v.getConstDecl(i), Decls.Var(v.name + "__MONOLITHIC_TEMP" + i, v.type, true).ref)
         }
       }
       subBuilder.put(v.getConstDecl(initStmtUnfoldResult.indexing.get(v)), v.ref)

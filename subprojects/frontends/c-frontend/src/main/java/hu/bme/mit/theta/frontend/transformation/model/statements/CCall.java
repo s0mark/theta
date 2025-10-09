@@ -42,7 +42,7 @@ public class CCall extends CStatement {
                 parseContext.getMetadata().getMetadataValue(functionId, "cType");
         CComplexType type =
                 (CComplexType) cTypeOpt.orElseGet(() -> new CSignedInt(null, parseContext));
-        ret = Var("call_" + functionId + "_ret" + counter++, type.getSmtType());
+        ret = Var("call_" + functionId + "_ret" + counter++, type.getSmtType(), true);
         parseContext.getMetadata().create(ret.getRef(), "cType", type);
     }
 

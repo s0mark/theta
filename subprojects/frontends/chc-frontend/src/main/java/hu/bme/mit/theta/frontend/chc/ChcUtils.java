@@ -114,7 +114,7 @@ public class ChcUtils {
             transformConst(Decls.Const(name, type), false);
             return ret;
         } else {
-            VarDecl<?> var = Decls.Var(name + "_" + builder.getEdges().size(), type);
+            VarDecl<?> var = Decls.Var(name + "_" + builder.getEdges().size(), type, true);
             builder.addVar(var);
             transformConst(Decls.Const(name, type), false);
             return var;

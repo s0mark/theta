@@ -56,7 +56,7 @@ abstract class PtrAction(writeTriples: WriteTriples = emptyMap(), val inCnt: Int
       val current = cnts.getOrDefault(it, inCnt)
       cnts[it] = current + 1
       val iMap = varList.getOrPut(Pair(it, type)) { LinkedHashMap() }
-      iMap.getOrPut(current) { Var("__${it}_$current", type) }
+      iMap.getOrPut(current) { Var("__${it}_$current", type, true) }
     }
     val lookup = LinkedHashMap<Dereference<*, *, *>, Pair<Expr<*>, Expr<*>>>()
     for (stmt in this.stmtList.map { it.uniqueDereferences(vargen, lookup) }) {

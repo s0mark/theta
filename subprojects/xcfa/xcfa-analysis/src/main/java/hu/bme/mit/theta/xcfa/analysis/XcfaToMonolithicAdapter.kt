@@ -107,8 +107,8 @@ class XcfaToMonolithicAdapter(private val xcfa: XCFA, private val initValues: Bo
     edges = proc.edges.toList()
     val locationMap = locations.mapIndexed { index, location -> location to index }.toMap()
     val edgeMap = edges.mapIndexed { index, edge -> edge to index }.toMap()
-    locVar = Decls.Var("__loc_", intType)
-    val edgeVar = Decls.Var("__edge_", intType)
+    locVar = Decls.Var("__loc_", intType, true)
+    val edgeVar = Decls.Var("__edge_", intType, true)
     val tranList =
       proc.edges
         .map { edge: XcfaEdge ->

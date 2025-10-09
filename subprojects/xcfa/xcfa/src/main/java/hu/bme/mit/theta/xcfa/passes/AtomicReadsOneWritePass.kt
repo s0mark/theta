@@ -100,7 +100,7 @@ class AtomicReadsOneWritePass : ProcedurePass {
   }
 
   private fun <T : Type> VarDecl<T>.localVersion(indexing: VarIndexing): VarDecl<T> =
-    Decls.Var("${name}_l${indexing.get(this)}", type)
+    Decls.Var("${name}_l${indexing.get(this)}", type, true)
 
   private data class AccessOrder(var write: Boolean = false, var wrongWrite: Boolean = false)
 

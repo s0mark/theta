@@ -55,6 +55,18 @@ public final class Decls {
      * @return
      */
     public static <T extends Type> VarDecl<T> Var(final String name, final T type) {
-        return new VarDecl<>(name, type);
+        return Var(name, type, false);
+    }
+
+    /**
+     * Create a variable declaration with a given type.
+     *
+     * @param name
+     * @param type
+     * @param <T>
+     * @return
+     */
+    public static <T extends Type> VarDecl<T> Var(final String name, final T type, boolean internal) {
+        return new VarDecl<>(name, type, internal);
     }
 }

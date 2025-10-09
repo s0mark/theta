@@ -37,7 +37,7 @@ class MallocFunctionPass(val parseContext: ParseContext) : ProcedurePass {
     private val mallocVars: MutableMap<XcfaBuilder, VarDecl<*>> = mutableMapOf()
 
     private fun XcfaBuilder.mallocVar(parseContext: ParseContext) =
-      mallocVars.getOrPut(this) { Var("__malloc", CPointer(null, null, parseContext).smtType) }
+      mallocVars.getOrPut(this) { Var("__malloc", CPointer(null, null, parseContext).smtType, true) }
   }
 
   override fun run(builder: XcfaProcedureBuilder): XcfaProcedureBuilder {

@@ -23,7 +23,7 @@ import hu.bme.mit.theta.core.type.rattype.RatType;
 
 final class ZeroVar {
 
-    private static final VarDecl<RatType> ZERO_VAR = Var("_zero", Rat());
+    private static final VarDecl<RatType> ZERO_VAR = Var("_zero", Rat(), true);
 
     private ZeroVar() {}
 

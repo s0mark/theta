@@ -207,7 +207,7 @@ class MemsafetyPass(val parseContext: ParseContext) : ProcedurePass {
     val sizeVar = builder.parent.getPtrSizeVar()
     val anyBase =
       builder.parent.getVars().find { it.wrappedVar.name == "__ptr" }?.wrappedVar
-        ?: XcfaGlobalVar(Var("__ptr", sizeVar.type.indexType), pointerType.nullValue)
+        ?: XcfaGlobalVar(Var("__ptr", sizeVar.type.indexType, true), pointerType.nullValue)
           .also { builder.parent.addVar(it) }
           .wrappedVar
     val remained = // 3k+0: malloc

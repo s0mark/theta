@@ -569,6 +569,9 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
             }
             if (declaration.getInitExpr() != null) {
                 if (declaration.getType() instanceof Struct) {
+                    Struct type = (Struct) declaration.getType();
+                    if (type.isUnion)
+                        throw new RuntimeException("Union initializer list not implemented yet!");
                     checkState(
                             declaration.getInitExpr() instanceof CInitializerList,
                             "Struct can only be initialized via an initializer list!");

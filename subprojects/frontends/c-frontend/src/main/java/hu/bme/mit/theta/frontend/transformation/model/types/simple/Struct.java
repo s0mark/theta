@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Struct extends NamedType {
+    public static final String UNION_LAST_WRITTEN = "union_last_written";
 
     private final Map<String, CDeclaration> fields;
     private final String name;
+    public final boolean isUnion;
     private final Logger uniqueWarningLogger;
 
     private boolean currentlyBeingBuilt;
@@ -43,13 +45,20 @@ public class Struct extends NamedType {
         return definedTypes.get(name);
     }
 
-    Struct(String name, ParseContext parseContext, Logger uniqueWarningLogger) {
+    Struct(String name, ParseContext parseContext, Logger uniqueWarningLogger, boolean isUnion) {
         super(parseContext, "struct", uniqueWarningLogger);
         this.uniqueWarningLogger = uniqueWarningLogger;
         fields = new LinkedHashMap<>();
         this.name = name;
         if (name != null) {
             definedTypes.put(name, this);
+        }
+        this.isUnion = isUnion;
+        if (this.isUnion) {
+            CSimpleType type = CSimpleTypeFactory.NamedType("int", parseContext, uniqueWarningLogger);
+            type.setSigned(false);
+            type.setAssociatedName(UNION_LAST_WRITTEN);
+            fields.put(UNION_LAST_WRITTEN, new CDeclaration(type));
         }
         currentlyBeingBuilt = false;
     }
@@ -59,6 +68,7 @@ public class Struct extends NamedType {
         fields = new LinkedHashMap<>();
         fields.putAll(from.fields);
         this.name = from.name;
+        this.isUnion = from.isUnion;
         this.uniqueWarningLogger = from.uniqueWarningLogger;
         currentlyBeingBuilt = false;
     }
@@ -80,7 +90,7 @@ public class Struct extends NamedType {
                 (s, cDeclaration) -> actualFields.add(Tuple2.of(s, cDeclaration.getActualType())));
         currentlyBeingBuilt = false;
 
-        CComplexType type = new CStruct(this, actualFields, parseContext);
+        CComplexType type = new CStruct(this, actualFields, parseContext, isUnion);
 
         for (int i = 0; i < getPointerLevel(); i++) {
             type = new CPointer(this, type, parseContext);

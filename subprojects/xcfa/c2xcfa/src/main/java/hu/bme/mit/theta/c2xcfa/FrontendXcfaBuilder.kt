@@ -394,6 +394,7 @@ class FrontendXcfaBuilder(
           val memassign = MemoryAssignStmt.create(deref, castRExpression)
 
           parseContext.metadata.create(deref, "cType", CPointer(null, type, parseContext))
+          parseContext.metadata.create(memassign, "originalDeref", lValue)
           StmtLabel(memassign, metadata = getMetadata(statement))
         }
 

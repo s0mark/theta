@@ -46,7 +46,11 @@ class CPasses(property: XcfaProperty, parseContext: ParseContext, uniqueWarningL
       FpFunctionsToExprsPass(parseContext),
       CLibraryFunctionsPass(),
     ),
-    listOf(ReferenceElimination(parseContext), MallocFunctionPass(parseContext)),
+    listOf(
+      ReferenceElimination(parseContext),
+      MallocFunctionPass(parseContext),
+      UnionMemberAccessPass(parseContext),
+    ),
     listOf(
       // optimizing
       SimplifyExprsPass(parseContext, property),

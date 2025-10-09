@@ -29,12 +29,16 @@ public class CStruct extends CInteger {
 
     private final List<Tuple2<String, CComplexType>> fields;
 
+    public final boolean isUnion;
+
     public CStruct(
             CSimpleType origin,
             List<Tuple2<String, CComplexType>> fields,
-            ParseContext parseContext) {
+            ParseContext parseContext,
+            boolean isUnion) {
         super(origin, parseContext);
         this.fields = fields;
+        this.isUnion = isUnion;
     }
 
     public <T, R> R accept(CComplexTypeVisitor<T, R> visitor, T param) {

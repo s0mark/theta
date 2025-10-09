@@ -94,7 +94,7 @@ public class TypedefVisitor extends CBaseVisitor<Set<CDeclaration>> {
     }
 
     @Override
-    public Set<CDeclaration> visitTypeDefinition(CParser.TypeDefinitionContext ctx) {
+    public Set<CDeclaration> visitTypeDefinition(CParser.TypeDefinitionContext ctx) { // TODO handle externalTypeDefinition (function ptr alts)
         CSimpleType cSimpleType = ctx.declarationSpecifiers().accept(declarationVisitor.getTypeVisitor());
         CDeclaration cDeclaration = new CDeclaration(ctx.Identifier.getText());
         cDeclaration.setType(cSimpleType);

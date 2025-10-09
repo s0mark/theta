@@ -588,6 +588,8 @@ functionDefinition
 
 typeDefinition
     :   'typedef' declarationSpecifiers Identifier ';' {typedefNames.add($Identifier.text);}
+    |   'typedef' declarationSpecifiers '(' '*'  Identifier ')' '(' parameterTypeList?  ')' ';' {typedefNames.add($Identifier.text);}
+    |   'typedef' declarationSpecifiers Identifier '(' parameterTypeList?  ')' ';' {typedefNames.add($Identifier.text);}
     ;
 
 //declarationList

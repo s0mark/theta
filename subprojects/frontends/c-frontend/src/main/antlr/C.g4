@@ -294,7 +294,7 @@ structOrUnion
     ;
 
 structDeclarationList
-    :   structDeclaration+
+    :   structDeclaration*
     ;
 
 structDeclaration

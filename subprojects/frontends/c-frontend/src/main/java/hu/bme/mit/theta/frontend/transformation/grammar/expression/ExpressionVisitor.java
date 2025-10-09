@@ -576,12 +576,17 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
                                                             "cTypedefName")
                                                     .map(it -> (CComplexType) it))
                             .or(
-                                    () ->
-                                            Optional.ofNullable(
-                                                    CComplexType.getType(
-                                                            getVar(ctx.typeName().getText())
-                                                                    .getRef(),
-                                                            parseContext)));
+                                    () -> {
+                                        try {
+                                            return Optional.ofNullable(CComplexType.getType(
+                                                getVar(ctx.typeName().getText()).getRef(),
+                                                parseContext
+                                            ));
+                                        } catch (RuntimeException e) {
+                                            return Optional.empty();
+                                        }
+                                    });
+
 
             if (type.isPresent()) {
                 LitExpr<?> value =
@@ -961,6 +966,7 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
                                 cast(idxExpr, primary.getType()),
                                 embeddedType.getSmtType());
                 parseContext.getMetadata().create(primary, "cType", embeddedType);
+                parseContext.getMetadata().create(primary, "structType", structType);
                 return primary;
             };
         }

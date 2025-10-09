@@ -251,12 +251,13 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
 
     @Override
     public CSimpleType visitCompoundDefinition(CParser.CompoundDefinitionContext ctx) {
-        if (ctx.structOrUnion().Struct() != null) {
+        if (ctx.structOrUnion().Struct() != null || ctx.structOrUnion().Union() != null) {
             String name = null;
             if (ctx.Identifier() != null) {
                 name = ctx.Identifier().getText();
             }
-            Struct struct = CSimpleTypeFactory.Struct(name, parseContext, uniqueWarningLogger);
+            boolean isUnion = ctx.structOrUnion().Union() != null;
+            Struct struct = CSimpleTypeFactory.Struct(name, parseContext, uniqueWarningLogger, isUnion);
             for (CParser.StructDeclarationContext structDeclarationContext :
                     ctx.structDeclarationList().structDeclaration()) {
                 CParser.SpecifierQualifierListContext specifierQualifierListContext =
@@ -288,7 +289,7 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
     @Override
     public CSimpleType visitCompoundUsage(CParser.CompoundUsageContext ctx) {
         String text = ctx.Identifier().getText();
-        if (ctx.structOrUnion().Struct() != null) {
+        if (ctx.structOrUnion().Struct() != null || ctx.structOrUnion().Union() != null) {
             return Struct.getByName(text);
         } else {
             return NamedType(

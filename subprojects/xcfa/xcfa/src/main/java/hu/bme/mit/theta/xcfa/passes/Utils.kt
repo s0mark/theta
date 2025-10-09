@@ -28,6 +28,7 @@ import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType
 import hu.bme.mit.theta.xcfa.getFlatLabels
 import hu.bme.mit.theta.xcfa.model.*
 import java.util.*
+import kotlin.reflect.KClass
 
 /** XcfaEdge must be in a `deterministic` ProcedureBuilder */
 fun XcfaEdge.splitIf(function: (XcfaLabel) -> Boolean): List<XcfaEdge> {
@@ -190,3 +191,20 @@ fun combineMetadata(vararg metaData: MetaData): MetaData = combineMetadata(metaD
 
 fun combineMetadata(metaData: Collection<MetaData>): MetaData =
   metaData.reduce { i1, i2 -> i1.combine(i2) }
+
+inline fun <reified P : Expr<*>> Expr<*>.transform(
+  parseContext: ParseContext? = null,
+  noinline map: (P) -> Expr<*>,
+) = transform(P::class, parseContext, map)
+
+fun <P : Expr<*>> Expr<*>.transform(
+  type: KClass<P>,
+  parseContext: ParseContext? = null,
+  map: (P) -> Expr<*>,
+): Expr<*> =
+  if (type.isInstance(this)) map(this as P)
+  else this.withOps(this.ops.map { it.transform(type, parseContext, map) }).also {
+    if (parseContext?.metadata?.getMetadataValue(this, "cType")?.isPresent == true) {
+      parseContext.metadata?.create(it, "cType", CComplexType.getType(this, parseContext))
+    }
+  }

@@ -353,6 +353,7 @@ functionSpecifier
     :   ('inline'
     |   '_Noreturn'
     |   '__inline__' // GCC extension
+    |   '__inline'
     |   '__stdcall')
     |   gccAttributeSpecifier
     |   '__declspec' '(' Identifier ')'
@@ -363,7 +364,7 @@ alignmentSpecifier
     ;
 
 declarator
-    :   pointer? directDeclarator gccDeclaratorExtension*
+    :   pointer? gccDeclaratorExtension* directDeclarator gccDeclaratorExtension*
     ;
 
 directDeclarator
@@ -452,7 +453,8 @@ directAbstractDeclarator
     ;
 
 typedefName
-    :   Identifier
+    :   Identifier //{typedefNames.add(getCurrentToken().getText())}?
+//    |   GCCBuiltin
     ;
 
 initializer
@@ -639,6 +641,11 @@ Imaginary : '_Imaginary';
 Noreturn : '_Noreturn';
 StaticAssert : '_Static_assert';
 ThreadLocal : '_Thread_local';
+
+/*GCCBuiltin // could be used as an alternative in typedef to only permit known GCC types
+    :   '__builtin_va_list'
+    |   '__gnuc_va_list'
+    ;*/
 
 LeftParen : '(';
 RightParen : ')';

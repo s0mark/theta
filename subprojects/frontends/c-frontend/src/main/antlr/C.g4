@@ -280,7 +280,7 @@ typeSpecifier
     ;
 
 typeSpecifierPointer
-    :   typeSpecifier pointer
+    :   typeSpecifier typeQualifier* pointer
     ;
 
 structOrUnionSpecifier

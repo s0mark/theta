@@ -303,7 +303,7 @@ structDeclaration
     ;
 
 specifierQualifierList
-    :   typeSpecifierOrQualifier+ typeSpecifierPointer
+    :   typeSpecifierOrQualifier* typeSpecifierPointer
     |   typeSpecifierOrQualifier+
     ;
 

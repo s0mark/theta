@@ -15,15 +15,6 @@
  */
 package hu.bme.mit.theta.frontend.transformation.grammar.expression;
 
-import static com.google.common.base.Preconditions.checkState;
-import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.*;
-import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Div;
-import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Mod;
-import static hu.bme.mit.theta.core.type.anytype.Exprs.Reference;
-import static hu.bme.mit.theta.core.type.fptype.FpExprs.FpType;
-import static hu.bme.mit.theta.core.type.inttype.IntExprs.Int;
-import static hu.bme.mit.theta.core.utils.TypeUtils.cast;
-
 import hu.bme.mit.theta.c.frontend.dsl.gen.CBaseVisitor;
 import hu.bme.mit.theta.c.frontend.dsl.gen.CParser;
 import hu.bme.mit.theta.c.frontend.dsl.gen.CParser.*;
@@ -60,12 +51,22 @@ import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CArray;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CPointer;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CStruct;
+import org.kframework.mpfr.BigFloat;
+import org.kframework.mpfr.BinaryMathContext;
+
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.kframework.mpfr.BigFloat;
-import org.kframework.mpfr.BinaryMathContext;
+
+import static com.google.common.base.Preconditions.checkState;
+import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Div;
+import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Mod;
+import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.*;
+import static hu.bme.mit.theta.core.type.anytype.Exprs.Reference;
+import static hu.bme.mit.theta.core.type.fptype.FpExprs.FpType;
+import static hu.bme.mit.theta.core.type.inttype.IntExprs.Int;
+import static hu.bme.mit.theta.core.utils.TypeUtils.cast;
 
 // FunctionVisitor may be null, e.g., when parsing a simple C expression.
 
@@ -855,10 +856,23 @@ public class ExpressionVisitor extends CBaseVisitor<Expr<?>> {
         var assignments = ctx.expression().assignmentExpression();
         var assignment = assignments.get(assignments.size() - 1);
         if (assignment instanceof AssignmentExpressionConditionalExpressionContext cond) {
-            return cond.conditionalExpression().logicalOrExpression().accept(this);
+            return cond.conditionalExpression().accept(this);
         } else {
             throw new RuntimeException("Assignments not supported without a function visitor.");
         }
+    }
+
+    @Override
+    public Expr<?> visitConditionalExpression(ConditionalExpressionContext ctx) {
+        Expr<?> cond = ctx.logicalOrExpression().accept(this);
+        if (ctx.ifTrue != null && ctx.ifFalse != null) {
+            if (!(cond.getType() instanceof BoolType))
+                cond = Neq(cond, CComplexType.getType(cond, parseContext).getNullValue());
+            Expr<?> ifTrue = ctx.ifTrue.accept(this);
+            Expr<?> ifFalse = ctx.ifFalse.accept(this);
+            cond = Ite((Expr<BoolType>) cond, ifTrue, ifFalse);
+        }
+        return cond;
     }
 
     @Override

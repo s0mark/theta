@@ -17,6 +17,7 @@
 package hu.bme.mit.theta.analysis.utils
 
 import com.google.common.base.Preconditions
+import com.google.common.base.Stopwatch
 import com.google.common.collect.Lists
 import hu.bme.mit.theta.analysis.Prec
 import hu.bme.mit.theta.analysis.expl.ExplPrec
@@ -49,6 +50,7 @@ import hu.bme.mit.theta.solver.smtlib.solver.transformer.SmtLibTransformationMan
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 enum class PrecReuseMode {
     PROPRIETARY,
@@ -56,11 +58,16 @@ enum class PrecReuseMode {
 }
 
 object PrecReuse {
-    private var isEnabled = false
+    var isEnabled = false
+        private set
     private var inputFile: File? = null
     private var serializer: PrecSerializer<Prec>? = null
     private var toSave: Prec? = null
-    var precReuseMode = PrecReuseMode.WITNESS
+    var precReuseMode = PrecReuseMode.PROPRIETARY
+    var parseTimeMs: Long = 0
+        private set
+    var serializationTimeMs: Long = 0
+        private set
 
     fun enable(precSerializer: PrecSerializer<*>) {
         isEnabled = true
@@ -76,8 +83,13 @@ object PrecReuse {
         assert(inputFile != null)
         assert(serializer != null)
 
+        val stopwatch = Stopwatch.createStarted()
         val savedPrec = (if (isEnabled) inputFile?.readText() else null) ?: ""
-        return serializer?.parse(savedPrec, currentVars) as? P ?: throw RuntimeException("Misconfigured PrecSerializer")
+        val prec =  serializer?.parse(savedPrec, currentVars) as? P ?: throw RuntimeException("Misconfigured PrecSerializer")
+        stopwatch.stop()
+        parseTimeMs = stopwatch.elapsed(TimeUnit.MILLISECONDS)
+
+        return prec;
     }
 
     fun <P : Prec> store(prec: P) {
@@ -88,12 +100,15 @@ object PrecReuse {
         assert(serializer != null)
         if (!isEnabled) return
 
+        val stopwatch = Stopwatch.createStarted()
         val outputFileName = when (precReuseMode) {
             PrecReuseMode.PROPRIETARY -> "prec.txt"
             PrecReuseMode.WITNESS -> "prec.yml"
         }
         val outputFile = File(outputFolder, outputFileName)
         outputFile.writeText(toSave?.let{ serializer!!.serialize(it) } ?: "")
+        stopwatch.stop()
+        serializationTimeMs = stopwatch.elapsed(TimeUnit.MILLISECONDS)
     }
 
 }
@@ -125,8 +140,16 @@ class PredPrecSerializer : PrecSerializer<PredPrec> {
 
         val predicates = (prec as PredPrec).preds
             .map { pred -> ExprUtils.changeDecls(pred, quotedVarLookup) }
+            .mapNotNull {
+                try {
+                    transformationManager.toTerm(it)
+                } catch (e: Exception) {
+                    println("WARNING: Couldn't serialize precision predicate, skipping it (${e.message})")
+                    null
+                }
+            }
             .joinToString(separator = "\n") {
-                "(assert ${transformationManager.toTerm(it)})"
+                "(assert $it)"
             }
 
         return "$varDecls\n\n*:\n$predicates"
@@ -151,9 +174,15 @@ class PredPrecSerializer : PrecSerializer<PredPrec> {
             .associateBy(symbolTable::getConst) { name -> currentVars.find { it.toSymbol() == name } }
             .filterValues { it != null }
 
-        val preds = savedPrec.terms.map { t ->
-            val expr = termTransformer.toExpr(t, BoolExprs.Bool(), SmtLibModel(emptyMap()))
-            ExprUtils.changeDecls(expr, varLookup)
+        val preds = savedPrec.terms.mapNotNull { t ->
+            try {
+                var expr = termTransformer.toExpr(t, BoolExprs.Bool(), SmtLibModel(emptyMap()))
+                expr = ExprUtils.changeDecls(expr, varLookup)
+                ExprUtils.simplify(expr)
+            } catch (e: Exception) {
+                println("WARNING: Couldn't parse initial precision $t, skipping it (${e.message})")
+                null
+            }
         }
         return PredPrec.of(preds)
     }

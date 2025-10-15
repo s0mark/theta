@@ -440,6 +440,10 @@ private fun postVerificationLogging(
   uniqueLogger: Logger,
 ) {
   PrecReuse.writeTo(config.outputConfig.resultFolder)
+  if (PrecReuse.isEnabled) {
+    logger.writeln(INFO, "PrecisionParsingMs: ${PrecReuse.parseTimeMs}")
+    logger.writeln(INFO, "PrecisionSerializationMs: ${PrecReuse.serializationTimeMs}")
+  }
   if (
     config.frontendConfig.inputType == InputType.CHC &&
       xcfa != null &&

@@ -75,7 +75,7 @@ class WitnessPredPrecSerializer : PrecSerializer<PredPrec> {
                         pred.replace(v.name.toC(), v.name.split("::").last())
                     }
                 } catch (e: NotImplementedError) {
-                    logger.writeln(Logger.Level.INFO, "WARNING: Couldn't serialize initial precision predicate, skipping it (${e.message})")
+                    logger.writeln(Logger.Level.INFO, "WARNING: Couldn't serialize precision predicate, skipping it (${e.message})")
                     null
                 }
             }

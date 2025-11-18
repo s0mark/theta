@@ -183,11 +183,6 @@ class FrontendXcfaBuilder(
               )
             initStmtList.add(
               StmtLabel(
-                Stmts.Assign(globalDeclaration.get1().varDecls[0] as VarDecl<Type>, cast(expr, expr.type))
-              )
-            )
-            initStmtList.add(
-              StmtLabel(
                 Stmts.MemoryAssign(deref as Dereference<*, *, Type>, cast(expr, expr.type))
               )
             )

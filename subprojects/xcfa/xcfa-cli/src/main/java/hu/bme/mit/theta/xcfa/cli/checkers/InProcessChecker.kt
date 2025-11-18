@@ -61,9 +61,9 @@ class InProcessChecker<F : SpecFrontendConfig, B : SpecBackendConfig>(
 
     val configJson =
       if (config.backendConfig.parseInProcess) {
-
         val config =
           config.copy(
+            inputConfig = config.inputConfig.copy(xcfaWCtx = null),
             outputConfig = config.outputConfig.copy(resultFolder = tempDir.toFile()),
             backendConfig = config.backendConfig.copy(inProcess = false, timeoutMs = 0),
           )
@@ -86,13 +86,10 @@ class InProcessChecker<F : SpecFrontendConfig, B : SpecBackendConfig>(
             outputConfig =
               config.outputConfig.copy(
                 resultFolder = tempDir.toFile(),
-                cOutputConfig = COutputConfig(disable = true),
-                xcfaOutputConfig = XcfaOutputConfig(disable = true),
-                chcOutputConfig = ChcOutputConfig(disable = true),
-                argConfig =
-                  config.outputConfig.argConfig.copy(
-                    disable = false
-                  ), // we need the arg to be produced
+                cOutputConfig = config.outputConfig.cOutputConfig.copy(enabled = false),
+                xcfaOutputConfig = config.outputConfig.xcfaOutputConfig.copy(enabled = false),
+                chcOutputConfig = config.outputConfig.chcOutputConfig.copy(enabled = false),
+                argConfig = config.outputConfig.argConfig.copy(enabled = false),
               ),
           )
         CachingFileSerializer.serialize("config.json", config) { getGson(xcfa).toJson(config) }

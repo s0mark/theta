@@ -19,9 +19,7 @@ import hu.bme.mit.theta.analysis.Trace
 import hu.bme.mit.theta.analysis.algorithm.SafetyChecker
 import hu.bme.mit.theta.analysis.algorithm.bounded.BoundedChecker
 import hu.bme.mit.theta.analysis.algorithm.bounded.MonolithicExpr
-import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.MEPipelineCheckerConstructorArguments
 import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.MonolithicExprPass
-import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.formalisms.FormalismPipelineChecker
 import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.passes.L2SMEPass
 import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.passes.PredicateAbstractionMEPass
 import hu.bme.mit.theta.analysis.algorithm.bounded.pipeline.passes.ReverseMEPass
@@ -33,10 +31,10 @@ import hu.bme.mit.theta.analysis.unit.UnitPrec
 import hu.bme.mit.theta.common.logging.Logger
 import hu.bme.mit.theta.frontend.ParseContext
 import hu.bme.mit.theta.solver.SolverFactory
-import hu.bme.mit.theta.xcfa.analysis.ErrorDetection
+import hu.bme.mit.theta.xcfa.ErrorDetection
 import hu.bme.mit.theta.xcfa.analysis.XcfaAction
 import hu.bme.mit.theta.xcfa.analysis.XcfaState
-import hu.bme.mit.theta.xcfa.analysis.XcfaToMonolithicAdapter
+import hu.bme.mit.theta.xcfa.analysis.monolithic.XcfaPipelineChecker
 import hu.bme.mit.theta.xcfa.analysis.proof.LocationInvariants
 import hu.bme.mit.theta.xcfa.cli.params.BoundedConfig
 import hu.bme.mit.theta.xcfa.cli.params.XcfaConfig
@@ -74,7 +72,7 @@ fun getBoundedChecker(
   }
 
   val passes = mutableListOf<MonolithicExprPass<PredState>>()
-  if (config.inputConfig.property == ErrorDetection.TERMINATION) {
+  if (config.inputConfig.property.verifiedProperty == ErrorDetection.TERMINATION) {
     passes.add(L2SMEPass())
   }
   if (boundedConfig.cegar) {
@@ -92,10 +90,15 @@ fun getBoundedChecker(
   if (boundedConfig.reversed) {
     passes.add(ReverseMEPass())
   }
-  return FormalismPipelineChecker(
-    model = parseContext,
-    modelAdapter = XcfaToMonolithicAdapter(xcfa),
-    MEPipelineCheckerConstructorArguments(baseChecker, passes, logger = logger),
+
+  return XcfaPipelineChecker(
+    xcfa,
+    config.inputConfig.property,
+    parseContext,
+    baseChecker,
+    passes,
+    logger,
+    config.outputConfig.acceptUnreliableSafe,
   )
 }
 

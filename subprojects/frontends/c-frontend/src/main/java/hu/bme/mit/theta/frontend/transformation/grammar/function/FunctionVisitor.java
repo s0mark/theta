@@ -186,14 +186,7 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
         return program;
     }
 
-    public void recordMetadata(ParserRuleContext ctx, CStatement statement) {
-        if (!currentStatementContext.isEmpty()) {
-            ctx =
-                    currentStatementContext
-                            .peek()
-                            .get1(); // this will overwrite the current ASt element's ctx
-            // with the statement's ctx
-        }
+    public void recordMetadataCommon(ParserRuleContext ctx, CStatement statement) {
         Token start = ctx.getStart();
         Token stop = ctx.getStop();
         String stopText = stop.getText();
@@ -216,6 +209,49 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
         statement.setOffsetEnd(offsetEnd);
         statement.setSourceText(textWithWS(ctx));
         statement.setCtx(ctx);
+    }
+
+    public void recordMetadata(ParserRuleContext ctx, CStatement statement) {
+        if (!currentStatementContext.isEmpty()) {
+            ctx =
+                    currentStatementContext
+                            .peek()
+                            .get1(); // this will overwrite the current ASt element's ctx
+            // with the statement's ctx
+        }
+        recordMetadataCommon(ctx, statement);
+    }
+
+    public void recordMetadata(ParserRuleContext ctx, CFunction statement) {
+        if (!currentStatementContext.isEmpty()) {
+            ctx =
+                    currentStatementContext
+                            .peek()
+                            .get1(); // this will overwrite the current ASt element's ctx
+            // with the statement's ctx
+        }
+        recordMetadataCommon(ctx, statement);
+        // propagate function name to all statements
+        propagateFunctionName(statement.getCompound(), statement.getFuncDecl().getName());
+    }
+
+    public void recordMetadata(ParserRuleContext ctx, CCall statement) {
+        ctx = (ParserRuleContext) ctx.parent.parent;
+        recordMetadataCommon(ctx, statement);
+    }
+
+    private void propagateFunctionName(CStatement stmt, String name) {
+        if (stmt.getFunctionName() == null) {
+            // only overwrite if null, because
+            // sometimes we set it to "NotC" on purpose
+            // and we do not want to overwrite that
+            stmt.setFunctionName(name);
+        }
+        if (stmt instanceof CCompound) {
+            ((CCompound) stmt)
+                    .getcStatementList()
+                    .forEach(cStatement -> propagateFunctionName(cStatement, name));
+        }
     }
 
     @Override
@@ -318,7 +354,7 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
 
     @Override
     public CStatement visitIdentifierStatement(CParser.IdentifierStatementContext ctx) {
-        CStatement statement = ctx.statement().accept(this);
+        CStatement statement = ctx.blockItem().accept(this);
         CCompound compound = new CCompound(parseContext);
         compound.addCStatement(statement);
         compound.setId(ctx.Identifier().getText());
@@ -618,6 +654,9 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
                                             .limit(varDecl.getRef());
                             CAssume cAssume = new CAssume(assumeStmt, parseContext);
                             recordMetadata(ctx, cAssume);
+                            cAssume.setFunctionName("NotC");
+                            // as assumption is not in C
+                            // file
                             compound.addCStatement(cAssume);
                         }
                     }
@@ -632,6 +671,8 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
                                         .limit(varDecl.getRef());
                         CAssume cAssume = new CAssume(assumeStmt, parseContext);
                         recordMetadata(ctx, cAssume);
+                        cAssume.setFunctionName("NotC");
+                        // assumption is not in C file
                         compound.addCStatement(cAssume);
                     }
                 }
@@ -671,11 +712,12 @@ public class FunctionVisitor extends CBaseVisitor<CStatement> {
         }
         CAssignment cAssignment =
                 new CAssignment(ret, rhs, ctx.assignmentOperator().getText(), parseContext);
+        recordMetadata(ctx, cAssignment);
+        expressionVisitor.getPreStatements().forEach(preStatements::addCStatement);
         compound.addCStatement(cAssignment);
-        expressionVisitor.getPreStatements().forEach(compound::addCStatement);
         compound.setPreStatements(preStatements);
         recordMetadata(ctx, compound);
-        expressionVisitor.getPostStatements().forEach(compound::addCStatement);
+        expressionVisitor.getPostStatements().forEach(postStatements::addCStatement);
         compound.setPostStatements(postStatements);
         recordMetadata(ctx, compound);
         return compound;

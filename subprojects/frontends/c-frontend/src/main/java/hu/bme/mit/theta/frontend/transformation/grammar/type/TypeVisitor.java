@@ -24,7 +24,11 @@ import hu.bme.mit.theta.c.frontend.dsl.gen.CParser.CastDeclarationSpecifierListC
 import hu.bme.mit.theta.c.frontend.dsl.gen.CParser.TypeSpecifierPointerContext;
 import hu.bme.mit.theta.common.logging.Logger;
 import hu.bme.mit.theta.common.logging.Logger.Level;
+import hu.bme.mit.theta.core.model.ImmutableValuation;
 import hu.bme.mit.theta.core.type.Expr;
+import hu.bme.mit.theta.core.type.LitExpr;
+import hu.bme.mit.theta.core.type.inttype.IntLitExpr;
+import hu.bme.mit.theta.core.type.inttype.IntType;
 import hu.bme.mit.theta.frontend.ParseContext;
 import hu.bme.mit.theta.frontend.UnsupportedFrontendElementException;
 import hu.bme.mit.theta.frontend.transformation.grammar.expression.ExpressionVisitor;
@@ -306,26 +310,22 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
         String id = ctx.Identifier() == null ? null : ctx.Identifier().getText();
         ExpressionVisitor expressionVisitor = functionVisitor.createExpressionVisitor();
         Map<String, Optional<Expr<?>>> fields = new LinkedHashMap<>();
-        int enumFieldCount = 0;
-        boolean undefinedEnumFound = false;
-        boolean definedEnumFound = false;
+        int prevValue = -1;
         for (CParser.EnumeratorContext enumeratorContext : ctx.enumeratorList().enumerator()) {
             String value = enumeratorContext.enumerationConstant().getText();
             CParser.ConstantExpressionContext expressionContext =
                     enumeratorContext.constantExpression();
             Expr<?> expr;
             if (expressionContext == null) {
-                expr = CComplexType.getUnsignedInt(parseContext).getValue(Integer.toString(enumFieldCount));
-                undefinedEnumFound = true;
+                // undefined enum value is (previous value + 1)
+                expr = CComplexType.getUnsignedInt(parseContext).getValue(Integer.toString(++prevValue));
             } else {
                 expr = expressionContext.accept(expressionVisitor);
-                definedEnumFound = true;
+                prevValue = ((IntLitExpr) expr.eval(ImmutableValuation.empty())).getValue().intValue();
             }
             fields.put(value, Optional.ofNullable(expr));
             enumValues.put(value, expr);
         }
-        if (undefinedEnumFound && definedEnumFound)
-            throw new UnsupportedFrontendElementException("Mixed definition of enum values is unsupported!");
         return Enum(id, fields);
     }
 

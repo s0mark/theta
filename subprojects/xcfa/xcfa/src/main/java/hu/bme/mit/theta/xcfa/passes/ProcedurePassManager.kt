@@ -47,9 +47,9 @@ class CPasses(property: XcfaProperty, parseContext: ParseContext, uniqueWarningL
       CLibraryFunctionsPass(),
     ),
     listOf(
+      UnionMemberAccessPass(parseContext),
       ReferenceElimination(parseContext),
       MallocFunctionPass(parseContext),
-      UnionMemberAccessPass(parseContext),
     ),
     listOf(
       // optimizing

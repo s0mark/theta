@@ -138,6 +138,8 @@ public class BvType
                     FromBv(FpRoundingMode.getDefaultRoundingMode(), op, (FpType) type, signed);
         } else if (type instanceof IntType) {
             return (Expr<TargetType>) ToInt(op);
+        } else if (type instanceof BvType) {
+            return (Expr<TargetType>) op;
         }
         throw new ClassCastException("Bv cannot be cast to " + type);
     }

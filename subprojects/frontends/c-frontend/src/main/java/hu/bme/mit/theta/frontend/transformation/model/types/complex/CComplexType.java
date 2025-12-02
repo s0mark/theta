@@ -104,6 +104,8 @@ public abstract class CComplexType {
     public Expr<?> castTo(Expr<?> expr) {
         Expr<?> accept = this.accept(getCastVisitor(parseContext), expr);
         parseContext.getMetadata().create(accept, "cType", this);
+        parseContext.getMetadata().getMetadataValue(expr, "structType")
+                .ifPresent(type -> parseContext.getMetadata().create(accept, "structType", type));
         return accept;
     }
 

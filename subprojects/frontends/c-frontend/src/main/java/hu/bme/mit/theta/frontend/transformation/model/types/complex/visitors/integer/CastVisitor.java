@@ -23,13 +23,16 @@ import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Mod;
 import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Pos;
 import static hu.bme.mit.theta.core.type.abstracttype.AbstractExprs.Sub;
 import static hu.bme.mit.theta.core.type.inttype.IntExprs.Int;
+import static hu.bme.mit.theta.core.type.inttype.IntExprs.ToBv;
 
 import hu.bme.mit.theta.core.type.Expr;
 import hu.bme.mit.theta.core.type.anytype.IteExpr;
 import hu.bme.mit.theta.core.type.inttype.IntLitExpr;
+import hu.bme.mit.theta.core.type.inttype.IntType;
 import hu.bme.mit.theta.frontend.ParseContext;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CComplexType;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.CVoid;
+import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CArray;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.integer.CInteger;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.integer.Fitsall;
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.integer.Unsigned;
@@ -221,5 +224,15 @@ public class CastVisitor extends CComplexType.CComplexTypeVisitor<Expr<?>, Expr<
     @Override
     public Expr<?> visit(CVoid type, Expr<?> param) {
         return param.withOps(param.getOps());
+    }
+
+    @Override
+    public Expr<?> visit(CArray type, Expr<?> param) {
+        // TODO handle signedness
+        CComplexType that = CComplexType.getType(param, parseContext);
+        if (that instanceof CSignedInt) {
+            return ToBv((Expr<IntType>) param);
+        }
+        return param;
     }
 }

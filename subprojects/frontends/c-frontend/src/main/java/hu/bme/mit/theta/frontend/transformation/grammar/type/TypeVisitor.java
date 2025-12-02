@@ -267,6 +267,8 @@ public class TypeVisitor extends CBaseVisitor<CSimpleType> {
                 CParser.SpecifierQualifierListContext specifierQualifierListContext =
                         structDeclarationContext.specifierQualifierList();
                 CSimpleType cSimpleType = specifierQualifierListContext.accept(this);
+                if (isUnion && cSimpleType instanceof Struct)
+                    throw new UnsupportedFrontendElementException("Unions of compound types are not supported!");
                 if (structDeclarationContext.structDeclaratorList() == null) {
                     final var decl = new CDeclaration(cSimpleType);
                     struct.addField(decl);

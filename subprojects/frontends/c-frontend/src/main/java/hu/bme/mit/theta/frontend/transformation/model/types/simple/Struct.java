@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Struct extends NamedType {
-    public static final String UNION_LAST_WRITTEN = "union_last_written";
-
     private final Map<String, CDeclaration> fields;
     private final String name;
     public final boolean isUnion;
@@ -54,12 +52,6 @@ public class Struct extends NamedType {
             definedTypes.put(name, this);
         }
         this.isUnion = isUnion;
-        if (this.isUnion) {
-            CSimpleType type = CSimpleTypeFactory.NamedType("int", parseContext, uniqueWarningLogger);
-            type.setSigned(false);
-            type.setAssociatedName(UNION_LAST_WRITTEN);
-            fields.put(UNION_LAST_WRITTEN, new CDeclaration(type));
-        }
         currentlyBeingBuilt = false;
     }
 

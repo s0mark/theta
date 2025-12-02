@@ -16,32 +16,25 @@
 
 package hu.bme.mit.theta.xcfa.passes
 
-import hu.bme.mit.theta.core.decl.Decls
 import hu.bme.mit.theta.core.stmt.*
 import hu.bme.mit.theta.core.type.Expr
-import hu.bme.mit.theta.core.type.Type
-import hu.bme.mit.theta.core.type.abstracttype.EqExpr
+import hu.bme.mit.theta.core.type.abstracttype.Castable
 import hu.bme.mit.theta.core.type.anytype.Dereference
-import hu.bme.mit.theta.core.type.anytype.Exprs
-import hu.bme.mit.theta.core.type.anytype.IteExpr
+import hu.bme.mit.theta.core.type.anytype.Exprs.Dereference
 import hu.bme.mit.theta.core.type.booltype.BoolType
+import hu.bme.mit.theta.core.type.bvtype.BvType
 import hu.bme.mit.theta.core.type.inttype.IntType
 import hu.bme.mit.theta.core.utils.TypeUtils.cast
 import hu.bme.mit.theta.frontend.ParseContext
 import hu.bme.mit.theta.frontend.transformation.model.types.complex.compound.CStruct
-import hu.bme.mit.theta.frontend.transformation.model.types.simple.Struct
-import hu.bme.mit.theta.xcfa.READ
-import hu.bme.mit.theta.xcfa.WRITE
-import hu.bme.mit.theta.xcfa.dereferencesWithAccessTypes
-import hu.bme.mit.theta.xcfa.getFlatLabels
 import hu.bme.mit.theta.xcfa.model.*
+import hu.bme.mit.theta.xcfa.utils.READ
+import hu.bme.mit.theta.xcfa.utils.WRITE
+import hu.bme.mit.theta.xcfa.utils.dereferencesWithAccessType
+import hu.bme.mit.theta.xcfa.utils.getFlatLabels
 import kotlin.jvm.optionals.getOrNull
 
 class UnionMemberAccessPass(val parseContext: ParseContext) : ProcedurePass {
-    companion object {
-        private var cnt = 0
-    }
-
     override fun run(builder: XcfaProcedureBuilder): XcfaProcedureBuilder {
         builder.getEdges().toMutableList().forEach { instrumentReads(builder, it) }
         builder.getEdges().toMutableList().forEach { instrumentWrites(builder, it) }
@@ -50,7 +43,7 @@ class UnionMemberAccessPass(val parseContext: ParseContext) : ProcedurePass {
 
     private fun instrumentReads(builder: XcfaProcedureBuilder, edge: XcfaEdge) {
         val newEdges = edge.splitIfI { label ->
-            label.dereferencesWithAccessTypes.any { (_, access) -> access == READ }
+            label.dereferencesWithAccessType.any { (_, access) -> access == READ }
         }
 
         if (newEdges.none { (_, hasRead) -> hasRead }) return
@@ -73,7 +66,7 @@ class UnionMemberAccessPass(val parseContext: ParseContext) : ProcedurePass {
 
     private fun instrumentWrites(builder: XcfaProcedureBuilder, edge: XcfaEdge) {
         val newEdges = edge.splitIfI { label ->
-            label.dereferencesWithAccessTypes.any { (_, access) -> access == WRITE }
+            label.dereferencesWithAccessType.any { (_, access) -> access == WRITE }
         }
 
         if (newEdges.none { (_, hasWrite) -> hasWrite }) return
@@ -93,23 +86,11 @@ class UnionMemberAccessPass(val parseContext: ParseContext) : ProcedurePass {
 
             if (!compound.isUnion) return@map newEdge
 
-            val lastWrittenDeref = getLastWrittenDeref(originalDeref, compound)
-            val lastWritten = originalDeref.offset
-            val storeLastWritten = MemoryAssignStmt.create(lastWrittenDeref, lastWritten)
+            val deref = unionDeref(originalDeref, compound)
+            val expr = punTo(stmt.expr, deref)
 
-            newEdge.withLabel(SequenceLabel(listOf(newEdge.label, StmtLabel(storeLastWritten))))
+            newEdge.withLabel(SequenceLabel(listOf(StmtLabel(MemoryAssignStmt.create(deref, expr)))))
         }.forEach(builder::addEdge)
-    }
-
-    private fun getLastWrittenDeref(originalDeref: Dereference<*, *, *>, structType: CStruct): Dereference<*, *, *> {
-        val index = structType.fields.indexOfFirst { Struct.UNION_LAST_WRITTEN == it.get1() }
-        val indexExpr = structType.getValue(index.toString())
-        val embeddedType = structType.fieldsAsMap[Struct.UNION_LAST_WRITTEN]
-        return Exprs.Dereference(
-            cast(originalDeref.array, originalDeref.array.type),
-            cast(indexExpr, originalDeref.offset.type),
-            embeddedType!!.smtType
-        )
     }
 
     private fun Stmt.wrapDeref(builder: XcfaProcedureBuilder): Stmt {
@@ -137,22 +118,22 @@ class UnionMemberAccessPass(val parseContext: ParseContext) : ProcedurePass {
     }
 
     private fun Expr<*>.wrapDeref(builder: XcfaProcedureBuilder): Expr<*>
-        = this.transform<Dereference<*, *, *>>(parseContext) { deref ->
-            val compound = parseContext.metadata.getMetadataValue(deref, "structType")
+        = this.transform<Dereference<*, *, *>>(parseContext) { originalDeref ->
+            val deref = Dereference(originalDeref.array.wrapDeref(builder), originalDeref.offset.wrapDeref(builder), originalDeref.type)
+            val compound = parseContext.metadata.getMetadataValue(originalDeref, "structType")
                 .getOrNull() as? CStruct ?: return@transform deref
 
             if (!compound.isUnion) return@transform deref
 
-            val havocedVar = Decls.Var("__tmp_uh_${cnt++}", deref.type).also(builder::addVar)
-            val lastWrittenDeref = getLastWrittenDeref(deref, compound)
-            val readOffset = deref.offset
-
-            IteExpr.create<Type>(
-                EqExpr.create2(lastWrittenDeref, readOffset),
-                deref,
-                havocedVar.ref,
-            )
+            val newDeref = unionDeref(originalDeref, compound)
+            punTo(newDeref, originalDeref)
         }
+
+    private fun unionDeref(deref: Dereference<*, *, *>, structType: CStruct) =
+        Dereference(deref.array, structType.getValue("0"), BvType.of(32))
+
+    private fun <C : Castable<C>> punTo(from: Expr<*>, to: Expr<*>): Expr<*> =
+        (from as? Expr<C>)?.let { from.type?.Cast(it, to.type) } ?: from
 }
 
 private fun XcfaEdge.splitIfI(function: (XcfaLabel) -> Boolean): List<Pair<XcfaEdge, Boolean>> {

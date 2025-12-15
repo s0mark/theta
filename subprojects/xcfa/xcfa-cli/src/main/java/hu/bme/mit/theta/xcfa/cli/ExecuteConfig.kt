@@ -126,6 +126,7 @@ private fun propagateInputOptions(config: XcfaConfig<*, *>, logger: Logger, uniq
         val precFile = File(precFilename)
         if (precFile.exists()) {
           PrecReuse.setInput(precFile)
+          PrecReuse.setLogger(uniqueLogger)
           PrecReuse.precReuseMode = when (precFile.extension) {
             "yml" -> PrecReuseMode.WITNESS
             "txt" -> PrecReuseMode.PROPRIETARY
